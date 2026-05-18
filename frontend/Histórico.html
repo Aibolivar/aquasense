@@ -171,7 +171,15 @@
 <div id="toast"><span id="toast-icon">ℹ️</span><span id="toast-msg">Mensaje</span></div>
 
 <script>
-  const API = 'http://192.168.0.9:5000';
+  // ============================================================
+  //  CONFIGURACIÓN DINÁMICA DE API
+  // ============================================================
+  function getAPIBaseURL() {
+    let ip = localStorage.getItem('aquasense_ip') || 'localhost';
+    return `http://${ip}:5000`;
+  }
+  
+  const API = getAPIBaseURL();
   let allData   = [];
   let histChart = null;
 
@@ -217,9 +225,10 @@
       document.getElementById('conn-text').textContent = 'Conectado';
       showToast('✅', 'Datos cargados correctamente');
     } catch(e) {
+      console.error('Error:', e);
       document.getElementById('conn-dot').className = 'mini-dot offline';
       document.getElementById('conn-text').textContent = 'Sin conexión';
-      showToast('❌', 'No se pudo conectar con la API');
+      showToast('❌', `No se pudo conectar con ${API}`);
     }
     document.getElementById('refresh-icon').textContent = '↻';
   }
@@ -229,7 +238,6 @@
                   ph:          ['hval-ph',  'hbadge-ph',  'htrend-ph',  'hcard-ph'],
                   oxigeno:     ['hval-od',  'hbadge-od',  'htrend-od',  'hcard-od'],
                   turbidez:    ['hval-turb','hbadge-turb','htrend-turb','hcard-turb'] };
-    const unidades = { temperatura:'°C', ph:'pH', oxigeno:'mg/L', turbidez:'NTU' };
 
     Object.entries(map).forEach(([sensor, [valId, badgeId, trendId, cardId]]) => {
       const filas = allData.filter(([t]) => t.toLowerCase() === sensor);
@@ -241,6 +249,12 @@
       badge.textContent = est.label; badge.className = `metric-status-badge ${est.cls}`;
       document.getElementById(trendId).textContent =
         `Último: ${new Date(filas[0][2]).toLocaleString('es-CO')}`;
+      
+      // Cambiar color de la tarjeta según estado
+      const card = document.getElementById(cardId);
+      if (card) {
+        card.className = `metric-card ${est.label === 'ALERTA' ? 'status-warn' : 'status-ok'}`;
+      }
     });
   }
 
@@ -254,12 +268,14 @@
       const val = parseFloat(valor);
       const est = estado(sensor, val);
       const r   = RANGOS[sensor.toLowerCase()] || { unit: '' };
-      return `<tr>
-        <td style="color:var(--text1);font-weight:500;">${sensor}</td>
-        <td style="font-family:'Space Mono',monospace;">${val.toFixed(2)} <span style="color:var(--text3);font-size:0.7rem;">${r.unit}</span></td>
-        <td style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--text3);">${new Date(fecha).toLocaleString('es-CO')}</td>
-        <td><span style="color:${est.color};font-size:0.68rem;font-weight:700;font-family:'Space Mono',monospace;">● ${est.label}</span></td>
-      </tr>`;
+      return `
+        <tr>
+          <td style="color:var(--text1);font-weight:500;">${sensor}</td>
+          <td style="font-family:'Space Mono',monospace;">${val.toFixed(2)} <span style="color:var(--text3);font-size:0.7rem;">${r.unit}</span></td>
+          <td style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--text3);">${new Date(fecha).toLocaleString('es-CO')}</td>
+          <td><span style="color:${est.color};font-size:0.68rem;font-weight:700;font-family:'Space Mono',monospace;">● ${est.label}</span></td>
+        </tr>
+      `;
     }).join('');
   }
 
@@ -287,7 +303,8 @@
     ];
 
     if (histChart) histChart.destroy();
-    histChart = new Chart(document.getElementById('chart-historico').getContext('2d'), {
+    const ctx = document.getElementById('chart-historico').getContext('2d');
+    histChart = new Chart(ctx, {
       type: 'line',
       data: { labels, datasets },
       options: {
@@ -315,7 +332,11 @@
 
   function exportarCSV() {
     if (!allData.length) { showToast('⚠️', 'Sin datos para exportar'); return; }
-    const rows = [['Sensor','Valor','Fecha'], ...allData.map(([s,v,f]) => [s,v,f])];
+    const rows = [['Sensor','Valor','Unidad','Fecha'], 
+      ...allData.map(([s,v,f]) => {
+        const r = RANGOS[s.toLowerCase()] || { unit: '' };
+        return [s, v, r.unit, f];
+      })];
     const csv  = rows.map(r => r.join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv' }));

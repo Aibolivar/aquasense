@@ -65,7 +65,6 @@
       <div style="display:flex;gap:10px;align-items:center;">
         <div class="conn-indicator" id="last-update" style="font-size:0.7rem;"></div>
         <button class="btn-sm" onclick="forceRefresh()"><span id="refresh-icon">↻</span> Actualizar</button>
-        <button class="btn-sm" onclick="iniciarMedicion()">Iniciar medición</button>
       </div>
     </div>
 
@@ -190,7 +189,8 @@
         </div>
         <div style="overflow-x:auto;">
           <table class="readings-table">
-            <thead><tr><th>Hora</th><th>Temp.</th><th>pH</th><th>OD</th><th>Estado</th></tr></thead>
+            <thead>页面<th>Hora</th><th>Temp.</th><th>pH</th><th>OD</th><th>Estado</th></tr>
+            </thead>
             <tbody id="readings-tbody"><tr><td colspan="5" class="empty-state">Cargando...</td></tr></tbody>
           </table>
         </div>

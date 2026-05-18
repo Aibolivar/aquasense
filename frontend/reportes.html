@@ -115,7 +115,8 @@
     <div class="chart-card fade-in" style="padding:0;">
       <div style="overflow-x:auto;">
         <table class="readings-table">
-          <thead><tr><th>ID</th><th>Tipo</th><th>Generado por</th><th>pH</th><th>Temp.</th><th>OD</th><th>Turbidez</th><th>Estado</th><th>Fecha</th></tr></thead>
+          <thead>骨头<th>ID</th><th>Tipo</th><th>Generado por</th><th>pH</th><th>Temp.</th><th>OD</th><th>Turbidez</th><th>Estado</th><th>Fecha</th></tr>
+          </thead>
           <tbody id="reportes-tbody">
             <tr><td colspan="9" class="empty-state">Genera un reporte para verlo aquí</td></tr>
           </tbody>
@@ -129,8 +130,26 @@
 <div id="toast"><span id="toast-icon">ℹ️</span><span id="toast-msg">Mensaje</span></div>
 
 <script>
-  const API = 'http://192.168.0.9:5000';
+  // ============================================================
+  //  CONFIGURACIÓN DINÁMICA DE API — Obtiene IP desde localStorage
+  // ============================================================
+  function getAPIBaseURL() {
+    let ip = localStorage.getItem('aquasense_ip') || 'localhost';
+    return `http://${ip}:5000`;
+  }
+  
+  const API = getAPIBaseURL();
   let reportesLocales = [];
+
+  // Función para cambiar IP desde consola (útil para pruebas)
+  function cambiarIP() {
+    const actual = localStorage.getItem('aquasense_ip') || 'localhost';
+    const nueva = prompt(`IP actual: ${actual}\n\nIngresa la nueva IP del servidor:`, actual);
+    if (nueva && nueva.trim()) {
+      localStorage.setItem('aquasense_ip', nueva.trim());
+      location.reload();
+    }
+  }
 
   const RANGOS = {
     temperatura:{ min:20, max:30, unit:'°C' },
@@ -196,7 +215,8 @@
       document.getElementById('notif-count').textContent = alertas.length;
 
     } catch(e) {
-      showToast('❌', 'Error al conectar con la API');
+      console.error('Error:', e);
+      showToast('❌', 'Error al conectar con la API. Verifica que el servidor esté corriendo.');
     }
 
     btn.style.opacity = ''; btn.style.pointerEvents = '';
@@ -292,13 +312,26 @@
     setTimeout(() => t.classList.remove('show'), 3500);
   }
 
+  // Función para actualizar el indicador de conexión
+  function setConnectionStatus(ok) {
+    const dot = document.getElementById('conn-dot');
+    const text = document.getElementById('conn-text');
+    if (dot) dot.className = 'mini-dot' + (ok ? '' : ' offline');
+    if (text) text.textContent = ok ? 'Conectado' : 'Sin conexión';
+  }
+
   // Cargar alertas al iniciar para el badge
   window.addEventListener('DOMContentLoaded', async () => {
     try {
       const r = await axios.get(`${API}/getAlertas`);
       document.getElementById('alert-count').textContent = r.data.length;
       document.getElementById('notif-count').textContent = r.data.length;
-    } catch(e) {}
+      setConnectionStatus(true);
+    } catch(e) {
+      console.error('Error al conectar con API:', e);
+      setConnectionStatus(false);
+      showToast('⚠️', `No se pudo conectar a ${API}`);
+    }
   });
 </script>
 <style>@keyframes spin { to { transform:rotate(360deg); } }</style>

@@ -25,9 +25,6 @@ app.config['MYSQL_PORT'] = int(os.getenv('MYSQL_ADDON_PORT', 3306))
 
 mysql = MySQL(app)
 
-# Variable para controlar medición desde la web
-medir = False
-
 # -----------------------------
 # SERVIR ARCHIVOS HTML/CSS/JS
 # -----------------------------
@@ -59,29 +56,6 @@ def serve_js(filename):
 def serve_img(filename):
     """Servir imágenes"""
     return send_from_directory(os.path.join(FRONTEND_DIR, 'img'), filename)
-
-
-# -----------------------------
-# INICIAR MEDICION DESDE WEB
-# -----------------------------
-@app.route('/iniciarMedicion', methods=['GET'])
-def iniciarMedicion():
-    global medir
-    medir = True
-    return jsonify({"mensaje": "Medición iniciada"})
-
-
-# -----------------------------
-# ESP32 CONSULTA SI DEBE MEDIR
-# -----------------------------
-@app.route('/estadoMedicion', methods=['GET'])
-def estadoMedicion():
-    global medir
-    if medir:
-        medir = False
-        return jsonify({"medir": True})
-    else:
-        return jsonify({"medir": False})
 
 
 # -----------------------------
@@ -157,12 +131,11 @@ def getAlertas():
 def generarReporte():
     cursor = mysql.connection.cursor()
     cursor.execute("""
-    INSERT INTO reportes (fecha_generada,tipo_reporte)
-    VALUES (NOW(),'calidad del agua')
+    INSERT INTO informes (fecha_generada, tipo_reporte)
+    VALUES (NOW(), 'calidad del agua')
     """)
     mysql.connection.commit()
     return jsonify({"mensaje": "reporte generado"})
-
 
 
 # -----------------------------
@@ -194,7 +167,6 @@ def login():
         })
     else:
         return jsonify({"ok": False})
-
 
 
 # -----------------------------

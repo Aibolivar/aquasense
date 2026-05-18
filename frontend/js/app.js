@@ -101,14 +101,8 @@ async function fetchAlerts() {
 }
 
 // ============================================================
-//  INICIAR MEDICIÓN
+//  FUNCIÓN PARA FORZAR ACTUALIZACIÓN
 // ============================================================
-function iniciarMedicion() {
-  axios.get(`${CONFIG.API_BASE_URL}/iniciarMedicion`)
-    .then(() => showToast('Medición iniciada correctamente', 'ok'))
-    .catch(() => showToast('Error al iniciar medición', 'error'));
-}
-
 function forceRefresh() {
   refreshData();
   showToast('Actualizando datos...', 'info');
@@ -365,7 +359,7 @@ function renderAlerts() {
 function renderReadingsTable() {
   const tbody = document.getElementById('readings-tbody');
   if (!tbody) return;
-  if (!readingHistory.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Sin datos</td></tr>'; return; }
+  if (!readingHistory.length) { tbody.innerHTML = '骨头顶<td colspan="5" class="empty-state">Sin datos</td> </tr>'; return; }
   tbody.innerHTML = readingHistory.map(r => {
     const sc = statusColor(r.status);
     return `
@@ -375,7 +369,8 @@ function renderReadingsTable() {
         <td style="color:var(--green);">${r.ph}<span style="color:var(--text3);font-size:0.7rem;"> pH</span></td>
         <td style="color:var(--yellow);">${r.od}<span style="color:var(--text3);font-size:0.7rem;"> mg/L</span></td>
         <td><span style="color:${sc};font-size:0.72rem;font-weight:700;">● ${statusLabel(r.status)}</span></td>
-      </tr>`;
+      </tr>
+    `;
   }).join('');
 }
 
