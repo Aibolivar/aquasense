@@ -1,3 +1,7 @@
+#define BLYNK_TEMPLATE_ID "TMPL2PtoVk3w"
+#define BLYNK_TEMPLATE_NAME "AquaSence"
+#define BLYNK_AUTH_TOKEN "PWvh6wt4aTYRgkgt_uZD98fNM7CMfb34"
+
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <OneWire.h>
@@ -6,6 +10,7 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <WiFiManager.h>
+#include <BlynkSimpleEsp32.h>
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
@@ -13,13 +18,13 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
-float tempGlobal   = 0;
-float phGlobal     = 0;
-float turbGlobal   = 0;
-float oxGlobal     = 0;
-bool  datosListos  = false;
+float tempGlobal  = 0;
+float phGlobal    = 0;
+float turbGlobal  = 0;
+float oxGlobal    = 0;
+bool  datosListos = false;
 
-// Hilo para enviar datos sin bloquear
+// Hilo para enviar datos a la API sin bloquear
 void tareaEnvio(void* param) {
   while (true) {
     if (datosListos && WiFi.status() == WL_CONNECTED) {
@@ -42,6 +47,12 @@ void tareaEnvio(void* param) {
       enviar(1, phGlobal);
       enviar(3, turbGlobal);
       enviar(4, oxGlobal);
+
+      // Enviar a Blynk
+      Blynk.virtualWrite(V0, tempGlobal);
+      Blynk.virtualWrite(V1, phGlobal);
+      Blynk.virtualWrite(V2, oxGlobal);
+      Blynk.virtualWrite(V3, turbGlobal);
 
       datosListos = false;
     }
@@ -81,12 +92,17 @@ void setup() {
   delay(2000);
   lcd.clear();
 
-  // Inicia el hilo de envío
+  // Conectar a Blynk
+  Blynk.config(BLYNK_AUTH_TOKEN);
+  Blynk.connect();
+
   xTaskCreate(tareaEnvio, "EnvioAPI", 8192, NULL, 1, NULL);
 }
 
 void loop() {
   static unsigned long lastSend = 0;
+
+  Blynk.run();
 
   sensors.requestTemperatures();
   float temperatura = sensors.getTempCByIndex(0);
@@ -95,7 +111,6 @@ void loop() {
   float turbidez = random(1, 10);
   float oxigeno  = random(50, 100) / 10.0;
 
-  // LCD
   lcd.setCursor(0, 0);
   lcd.print("Temp: ");
   if (temperatura == DEVICE_DISCONNECTED_C) {
@@ -113,13 +128,12 @@ void loop() {
 
   Serial.print("Temp: "); Serial.println(temperatura);
 
-  // Cada 5s manda datos al hilo
   if (millis() - lastSend >= 5000) {
-    lastSend    = millis();
-    tempGlobal  = temperatura;
-    phGlobal    = ph;
-    turbGlobal  = turbidez;
-    oxGlobal    = oxigeno;
+    lastSend   = millis();
+    tempGlobal = temperatura;
+    phGlobal   = ph;
+    turbGlobal = turbidez;
+    oxGlobal   = oxigeno;
     datosListos = true;
   }
 

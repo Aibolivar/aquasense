@@ -1,9 +1,8 @@
 // ============================================================
-//  CONFIGURACIÓN DE API — IP dinámica
+//  CONFIGURACIÓN DE API
 // ============================================================
 function getAPIBaseURL() {
-  let ip = localStorage.getItem('aquasense_ip') || 'localhost';
-  return `http://${ip}:5000`;
+  return 'https://aquasense-t0pf.onrender.com';
 }
 
 const CONFIG = {
