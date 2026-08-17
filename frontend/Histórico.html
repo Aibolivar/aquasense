@@ -8,15 +8,18 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <link rel="stylesheet" href="../css/style.css">
-  <link rel="icon" type="image/png" href="../img/log.png">
+  <link rel="icon" type="image/png" href="./img/log.png">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#00c8ff">
+  <link rel="apple-touch-icon" href="./img/log.png">
 </head>
 <body>
 <div class="water-bg"></div>
-
+ 
 <div class="sidebar">
   <div class="sidebar-logo">
     <div class="logo-mark">
-      <div class="logo-icon" style="background:none;padding:0;"><img src="../img/log.png" style="width:40px;height:40px;border-radius:10px;" alt="logo"></div>
+      <div class="logo-icon" style="background:none;padding:0;"><img src="./img/log.png" style="width:40px;height:40px;border-radius:10px;" alt="logo"></div>
       <div><div class="logo-text">AquaSense</div><div class="logo-sub">IoT Monitoring v1.0</div></div>
     </div>
   </div>
@@ -42,7 +45,7 @@
     </div>
   </div>
 </div>
-
+ 
 <div class="main">
   <div class="topbar">
     <div>
@@ -57,9 +60,9 @@
       <div class="btn-icon" title="Notificaciones" style="position:relative;">🔔<span class="notif-badge" id="notif-count">0</span></div>
     </div>
   </div>
-
+ 
   <div class="content">
-
+ 
     <div class="section-header fade-in">
       <div class="section-title">Resumen · Últimos valores</div>
       <div style="display:flex;gap:8px;">
@@ -67,7 +70,7 @@
         <button class="btn-sm" onclick="exportarCSV()">⬇ CSV</button>
       </div>
     </div>
-
+ 
     <!-- TARJETAS ÚLTIMOS VALORES -->
     <div class="metrics-grid fade-in">
       <div class="metric-card status-ok" id="hcard-temp">
@@ -82,7 +85,7 @@
         </div>
         <div class="metric-trend" id="htrend-temp" style="color:var(--text3);">— cargando...</div>
       </div>
-
+ 
       <div class="metric-card status-ok" id="hcard-ph">
         <div class="metric-glow metric-ok-glow"></div>
         <div class="metric-header">
@@ -95,7 +98,7 @@
         </div>
         <div class="metric-trend" id="htrend-ph" style="color:var(--text3);">— cargando...</div>
       </div>
-
+ 
       <div class="metric-card status-ok" id="hcard-od">
         <div class="metric-glow metric-ok-glow"></div>
         <div class="metric-header">
@@ -108,7 +111,7 @@
         </div>
         <div class="metric-trend" id="htrend-od" style="color:var(--text3);">— cargando...</div>
       </div>
-
+ 
       <div class="metric-card status-ok" id="hcard-turb">
         <div class="metric-glow metric-ok-glow"></div>
         <div class="metric-header">
@@ -122,7 +125,7 @@
         <div class="metric-trend" id="htrend-turb" style="color:var(--text3);">— cargando...</div>
       </div>
     </div>
-
+ 
     <!-- GRÁFICO -->
     <div class="fade-in">
       <div class="chart-card">
@@ -142,7 +145,7 @@
         <div class="chart-canvas-wrap" style="height:220px;"><canvas id="chart-historico"></canvas></div>
       </div>
     </div>
-
+ 
     <!-- TABLA MEDICIONES -->
     <div class="section-header fade-in">
       <div class="section-title">Tabla de Mediciones · /getDatos</div>
@@ -151,7 +154,7 @@
         <span id="total-reg" style="font-size:0.68rem;color:var(--text3);font-family:'Space Mono',monospace;"></span>
       </div>
     </div>
-
+ 
     <div class="chart-card fade-in" style="padding:0;">
       <div style="overflow-x:auto;">
         <table class="readings-table">
@@ -164,39 +167,36 @@
         </table>
       </div>
     </div>
-
+ 
   </div>
 </div>
-
+ 
 <div id="toast"><span id="toast-icon">ℹ️</span><span id="toast-msg">Mensaje</span></div>
-
+ 
+<script src="./js/pwa.js"></script>
 <script>
   // ============================================================
-  //  CONFIGURACIÓN DINÁMICA DE API
+  //  CONFIGURACIÓN DE API — UNIFICADA con index.html y alertas.html
   // ============================================================
-  function getAPIBaseURL() {
-    let ip = localStorage.getItem('aquasense_ip') || 'localhost';
-    return `http://${ip}:5000`;
-  }
-  
-  const API = getAPIBaseURL();
+  const API = 'https://aquasense-t0pf.onrender.com';
+ 
   let allData   = [];
   let histChart = null;
-
+ 
   const RANGOS = {
     temperatura: { min: 20, max: 30, unit: '°C' },
     ph:          { min: 6.5, max: 8.5, unit: 'pH' },
     oxigeno:     { min: 5, max: 10, unit: 'mg/L' },
     turbidez:    { min: 0, max: 5, unit: 'NTU' },
   };
-
+ 
   // CLOCK
   function updateClock() {
     document.getElementById('clock').textContent =
       new Date().toLocaleTimeString('es-CO', { hour12: false });
   }
   setInterval(updateClock, 1000); updateClock();
-
+ 
   function estado(sensor, val) {
     const r = RANGOS[sensor.toLowerCase()];
     if (!r) return { label: 'NORMAL', color: 'var(--green)', cls: 'badge-ok' };
@@ -204,23 +204,23 @@
       return { label: 'ALERTA', color: 'var(--red)', cls: 'badge-alert' };
     return { label: 'NORMAL', color: 'var(--green)', cls: 'badge-ok' };
   }
-
+ 
   async function cargarDatos() {
     document.getElementById('refresh-icon').innerHTML = '<span class="spinner"></span>';
     try {
       const res = await axios.get(`${API}/getDatos`);
       allData = res.data; // [[tipo_sensor, valor, fecha_hora], ...]
-
+ 
       // Alertas badge
       const aRes = await axios.get(`${API}/getAlertas`);
       const n = aRes.data.length;
       document.getElementById('alert-count').textContent = n;
       document.getElementById('notif-count').textContent = n;
-
+ 
       actualizarTarjetas();
       renderTabla(allData);
       renderGrafico(allData, 'todos');
-
+ 
       document.getElementById('conn-dot').className = 'mini-dot';
       document.getElementById('conn-text').textContent = 'Conectado';
       showToast('✅', 'Datos cargados correctamente');
@@ -232,13 +232,13 @@
     }
     document.getElementById('refresh-icon').textContent = '↻';
   }
-
+ 
   function actualizarTarjetas() {
     const map = { temperatura: ['hval-temp','hbadge-temp','htrend-temp','hcard-temp'],
                   ph:          ['hval-ph',  'hbadge-ph',  'htrend-ph',  'hcard-ph'],
                   oxigeno:     ['hval-od',  'hbadge-od',  'htrend-od',  'hcard-od'],
                   turbidez:    ['hval-turb','hbadge-turb','htrend-turb','hcard-turb'] };
-
+ 
     Object.entries(map).forEach(([sensor, [valId, badgeId, trendId, cardId]]) => {
       const filas = allData.filter(([t]) => t.toLowerCase() === sensor);
       if (!filas.length) return;
@@ -257,7 +257,7 @@
       }
     });
   }
-
+ 
   function renderTabla(data) {
     const tbody = document.getElementById('hist-tbody');
     document.getElementById('total-reg').textContent = `${data.length} registros`;
@@ -273,17 +273,17 @@
           <td style="color:var(--text1);font-weight:500;">${sensor}</td>
           <td style="font-family:'Space Mono',monospace;">${val.toFixed(2)} <span style="color:var(--text3);font-size:0.7rem;">${r.unit}</span></td>
           <td style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--text3);">${new Date(fecha).toLocaleString('es-CO')}</td>
-          <td><span style="color:${est.color};font-size:0.68rem;font-weight:700;font-family:'Space Mono',monospace;">● ${est.label}</span></td>
+          <td><span style="color:${est.color};font-size:0.72rem;font-weight:700;">● ${est.label}</span></td>
         </tr>
       `;
     }).join('');
   }
-
+ 
   function filtrarTabla() {
     const q = document.getElementById('filtro-sensor').value.toLowerCase();
     renderTabla(allData.filter(([s]) => s.toLowerCase().includes(q)));
   }
-
+ 
   function renderGrafico(data, filtro) {
     const map = {};
     data.forEach(([sensor, valor, fecha]) => {
@@ -294,14 +294,14 @@
     const labels = puntos.map(p =>
       new Date(p.fecha).toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit', hour12:false })
     );
-
+ 
     const datasets = [
       { label:'Temperatura (°C)', data:puntos.map(p=>p.temperatura??null), borderColor:'#00d4ff', backgroundColor:'rgba(0,212,255,0.06)', borderWidth:2, pointRadius:2, tension:0.4, hidden: filtro!=='todos'&&filtro!=='temperatura', yAxisID:'y'  },
       { label:'pH',               data:puntos.map(p=>p.ph??null),          borderColor:'#00e5a0', backgroundColor:'rgba(0,229,160,0.06)', borderWidth:2, pointRadius:2, tension:0.4, hidden: filtro!=='todos'&&filtro!=='ph',          yAxisID:'y1' },
       { label:'O₂ (mg/L)',        data:puntos.map(p=>p.oxigeno??null),     borderColor:'#f5c842', backgroundColor:'rgba(245,200,66,0.06)',borderWidth:2, pointRadius:2, tension:0.4, hidden: filtro!=='todos'&&filtro!=='oxigeno',     yAxisID:'y2' },
       { label:'Turbidez (NTU)',   data:puntos.map(p=>p.turbidez??null),    borderColor:'#ff4d6a', backgroundColor:'rgba(255,77,106,0.06)',borderWidth:2, pointRadius:2, tension:0.4, hidden: filtro!=='todos'&&filtro!=='turbidez',    yAxisID:'y2' },
     ];
-
+ 
     if (histChart) histChart.destroy();
     const ctx = document.getElementById('chart-historico').getContext('2d');
     histChart = new Chart(ctx, {
@@ -323,13 +323,13 @@
       },
     });
   }
-
+ 
   function filtrarGrafico(tipo, el) {
     document.querySelectorAll('.time-tab').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
     renderGrafico(allData, tipo);
   }
-
+ 
   function exportarCSV() {
     if (!allData.length) { showToast('⚠️', 'Sin datos para exportar'); return; }
     const rows = [['Sensor','Valor','Unidad','Fecha'], 
@@ -344,7 +344,7 @@
     a.click();
     showToast('⬇️', 'CSV exportado');
   }
-
+ 
   function showToast(icon, msg) {
     document.getElementById('toast-icon').textContent = icon;
     document.getElementById('toast-msg').textContent  = msg;
@@ -352,7 +352,7 @@
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 3500);
   }
-
+ 
   window.addEventListener('DOMContentLoaded', () => {
     cargarDatos();
     setInterval(cargarDatos, 30000);
@@ -366,3 +366,4 @@
 </script>
 </body>
 </html>
+ 

@@ -7,37 +7,40 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <link rel="stylesheet" href="../css/style.css">
-  <link rel="icon" type="image/png" href="../img/log.png">
+  <link rel="icon" type="image/png" href="./img/log.png">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#00c8ff">
+  <link rel="apple-touch-icon" href="./img/log.png">
 </head>
 <body>
 <div class="login-page">
   <div class="login-bg-shapes"></div>
-
+ 
   <div class="login-card fade-in">
-
+ 
     <div class="login-logo">
       <div class="login-logo-icon" style="background:none;padding:0;">
-        <img src="../img/log.png" style="width:52px;height:52px;border-radius:14px;" alt="logo">
+        <img src="./img/log.png" style="width:52px;height:52px;border-radius:14px;" alt="logo">
       </div>
       <div>
         <div class="login-logo-text">AquaSense</div>
         <div class="login-logo-sub">IoT Monitoring v1.0</div>
       </div>
     </div>
-
+ 
     <div class="login-title">Crear cuenta</div>
     <div class="login-sub">Completa los datos para registrarte en el sistema.</div>
-
+ 
     <div class="form-group">
       <label class="form-label" for="nombre">Nombre completo</label>
       <input class="form-input" type="text" id="nombre" placeholder="Tu nombre completo">
     </div>
-
+ 
     <div class="form-group">
       <label class="form-label" for="correo">Correo electrónico</label>
       <input class="form-input" type="email" id="correo" placeholder="correo@ejemplo.com">
     </div>
-
+ 
     <div class="form-group">
       <label class="form-label" for="contrasena">Contraseña</label>
       <div style="position:relative;">
@@ -45,7 +48,7 @@
         <span onclick="togglePass('contrasena')" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1rem;color:var(--text3);">👁</span>
       </div>
     </div>
-
+ 
     <div class="form-group">
       <label class="form-label" for="confirmar">Confirmar contraseña</label>
       <div style="position:relative;">
@@ -53,34 +56,35 @@
         <span onclick="togglePass('confirmar')" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1rem;color:var(--text3);">👁</span>
       </div>
     </div>
-
+ 
     <button class="login-btn" onclick="registrar()" id="btn-registro">Crear cuenta</button>
-
+ 
     <div class="login-error" id="reg-error">❌ Error al registrar</div>
     <div class="login-error" id="reg-ok" style="background:var(--green-bg);border-color:rgba(46,204,138,0.25);color:var(--green2);">✅ Cuenta creada correctamente</div>
-
+ 
     <div style="text-align:center;margin-top:16px;font-size:0.82rem;color:var(--text2);">
       ¿Ya tienes cuenta? <a href="login.html" style="color:var(--accent2);font-weight:600;text-decoration:none;">Inicia sesión</a>
     </div>
-
+ 
     <div class="login-footer">
       <span class="eco-badge">🌿 Eco-Friendly</span>
       <span>·</span>
       <span>Granja La Aleta del Tiburón · Barranquilla</span>
     </div>
-
+ 
   </div>
 </div>
-
-<script src="../js/app.js"></script>
+ 
+<script src="./js/pwa.js"></script>
+<script src="js/app.js"></script>
 <script>
   function togglePass(id) {
     const i = document.getElementById(id);
     i.type = i.type === 'password' ? 'text' : 'password';
   }
-
+ 
   document.addEventListener('keydown', e => { if (e.key === 'Enter') registrar(); });
-
+ 
   async function registrar() {
     const nombre     = document.getElementById('nombre').value.trim();
     const correo     = document.getElementById('correo').value.trim();
@@ -89,31 +93,31 @@
     const btn        = document.getElementById('btn-registro');
     const errEl      = document.getElementById('reg-error');
     const okEl       = document.getElementById('reg-ok');
-
+ 
     errEl.classList.remove('show');
     okEl.classList.remove('show');
-
+ 
     if (!nombre || !correo || !contrasena || !confirmar) {
       errEl.textContent = '⚠️ Completa todos los campos';
       errEl.classList.add('show'); return;
     }
-
+ 
     if (contrasena !== confirmar) {
       errEl.textContent = '❌ Las contraseñas no coinciden';
       errEl.classList.add('show'); return;
     }
-
+ 
     if (contrasena.length < 4) {
       errEl.textContent = '❌ La contraseña debe tener al menos 4 caracteres';
       errEl.classList.add('show'); return;
     }
-
+ 
     btn.textContent = 'Registrando...';
     btn.disabled = true;
-
+ 
     try {
       const res = await axios.post(`${CONFIG.API_BASE_URL}/registro`, { nombre, correo, contrasena });
-
+ 
       if (res.data.ok) {
         okEl.textContent = '✅ Cuenta creada — redirigiendo...';
         okEl.classList.add('show');
@@ -131,10 +135,11 @@
       btn.disabled = false;
     }
   }
-
+ 
   window.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('aq_usuario')) window.location.href = 'index.html';
   });
 </script>
 </body>
 </html>
+ 

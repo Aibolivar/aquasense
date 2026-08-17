@@ -5,27 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AquaSense — Sensores</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <link rel="stylesheet" href="../css/style.css">
   <style>
     html, body { overflow: auto !important; background: var(--bg) !important; }
     .content { overflow-y: auto; height: auto; }
   </style>
-  <link rel="icon" type="image/png" href="../img/log.png">
+  <link rel="icon" type="image/png" href="./img/log.png">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#00c8ff">
+  <link rel="apple-touch-icon" href="./img/log.png">
 </head>
 <body>
 <div class="water-bg"></div>
 <div class="sidebar">
   <div class="sidebar-logo">
     <div class="logo-mark">
-      <div class="logo-icon" style="background:none;padding:0;"><img src="../img/log.png" style="width:40px;height:40px;border-radius:10px;" alt="logo"></div>
+      <div class="logo-icon" style="background:none;padding:0;"><img src="./img/log.png" style="width:40px;height:40px;border-radius:10px;" alt="logo"></div>
       <div><div class="logo-text">AquaSense</div><div class="logo-sub">IoT Monitoring v1.0</div></div>
     </div>
   </div>
   <div class="sidebar-section" style="margin-top:8px;">
     <div class="sidebar-label">Sistema</div>
-    <a class="nav-item" href="Dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a>
+    <a class="nav-item" href="index.html"><span class="nav-icon">🏠</span> Dashboard</a>
     <a class="nav-item" href="Histórico.html"><span class="nav-icon">📊</span> Histórico</a>
-    <a class="nav-item" href="alertas.html"><span class="nav-icon">🔔</span> Alertas<span class="nav-badge">3</span></a>
+    <a class="nav-item" href="alertas.html"><span class="nav-icon">🔔</span> Alertas<span class="nav-badge" id="alert-count">0</span></a>
   </div>
   <div class="sidebar-section" style="margin-top:4px;">
     <div class="sidebar-label">Configuración</div>
@@ -48,7 +52,7 @@
   </div>
 </div>
 </div>
-
+ 
 <div class="main">
   <div class="topbar">
     <div>
@@ -59,22 +63,23 @@
       <div class="conn-indicator"><span class="mini-dot"></span><span>Conectado</span></div>
       <div class="status-pill">📡 SENSORES</div>
       <div class="clock" id="clock">--:--:--</div>
-      <div class="btn-icon" title="Notificaciones" style="position:relative;">🔔<span class="notif-badge">3</span></div>
+      <div class="btn-icon" title="Notificaciones" style="position:relative;">🔔<span class="notif-badge" id="notif-count">0</span></div>
     </div>
   </div>
-
+ 
   <div class="content">
-
+ 
     <div class="section-header fade-in">
       <div class="section-title">Dispositivos Registrados</div>
       <div style="display:flex;gap:8px;">
+        <button class="btn-sm" onclick="registrarDispositivo()">➕ Registrar dispositivo</button>
         <button class="btn-sm" onclick="showToast('🔄','Escaneando red...')">🔍 Escanear red</button>
         <button class="btn-sm" onclick="showToast('✅','Todos los sensores sincronizados')">🔄 Sincronizar todo</button>
       </div>
     </div>
-
-    <div class="sensors-grid fade-in" style="grid-template-columns:1fr;max-width:520px;">
-
+ 
+    <div class="sensors-grid fade-in" id="sensors-grid" style="grid-template-columns:1fr;max-width:520px;">
+ 
       <div class="sensor-card sc-online">
         <div class="sensor-card-header">
           <div>
@@ -101,14 +106,14 @@
           <div class="s-btn danger" onclick="showToast('⚠️','ESP32-A desconectado')">✕ Desconectar</div>
         </div>
       </div>
-
+ 
     </div>
-
+ 
     <div class="section-header fade-in">
       <div class="section-title">Registro de Actividad</div>
       <button class="btn-sm" onclick="exportLog()">⬇ Exportar log</button>
     </div>
-
+ 
     <div class="table-card fade-in">
       <div class="table-card-header">
         <div><div class="tc-title">Log de Sensores</div><div class="tc-sub">Eventos recientes de los dispositivos ESP32</div></div>
@@ -122,26 +127,105 @@
         </tbody>
       </table>
     </div>
-
+ 
   </div>
 </div>
-
+ 
 <div id="toast"><span id="toast-icon">ℹ️</span><span id="toast-msg">Mensaje</span></div>
-
+ 
+<script src="./js/pwa.js"></script>
 <script>
+  // ============================================================
+  //  API — misma URL que el resto del sitio
+  // ============================================================
+  const API = 'https://aquasense-t0pf.onrender.com';
+ 
   function updateClock() {
     document.getElementById('clock').textContent = new Date().toLocaleTimeString('es-CO', { hour12: false });
   }
   setInterval(updateClock, 1000); updateClock();
-
+ 
+  // ============================================================
+  //  BADGE DE ALERTAS REAL (antes era un "3" fijo)
+  // ============================================================
+  async function cargarBadgeAlertas() {
+    try {
+      const res = await axios.get(`${API}/getAlertas`);
+      const n = res.data.length;
+      document.getElementById('alert-count').textContent = n;
+      document.getElementById('notif-count').textContent = n;
+    } catch(e) {
+      console.error('No se pudo cargar el conteo de alertas:', e);
+    }
+  }
+ 
+  // ============================================================
+  //  REGISTRO DE DISPOSITIVOS (solo visual/local, no conecta
+  //  un ESP32 real — sirve para mostrar la escalabilidad del
+  //  sistema a varios dispositivos/piscinas)
+  // ============================================================
+  function registrarDispositivo() {
+    const nombre = prompt('Nombre del nuevo dispositivo (ej: ESP32-B · Piscina 2):');
+    if (!nombre) return;
+    const mac = prompt('Dirección MAC (déjalo vacío si no la tienes aún):') || 'Sin asignar';
+ 
+    const dispositivos = JSON.parse(localStorage.getItem('aq_dispositivos_extra') || '[]');
+    dispositivos.push({ id: Date.now(), nombre, mac });
+    localStorage.setItem('aq_dispositivos_extra', JSON.stringify(dispositivos));
+ 
+    renderDispositivosExtra();
+    showToast('✅', `${nombre} registrado — pendiente de conexión`);
+  }
+ 
+  function eliminarDispositivo(id) {
+    let dispositivos = JSON.parse(localStorage.getItem('aq_dispositivos_extra') || '[]');
+    dispositivos = dispositivos.filter(d => d.id !== id);
+    localStorage.setItem('aq_dispositivos_extra', JSON.stringify(dispositivos));
+    renderDispositivosExtra();
+    showToast('🗑️', 'Dispositivo eliminado');
+  }
+ 
+  function renderDispositivosExtra() {
+    const dispositivos = JSON.parse(localStorage.getItem('aq_dispositivos_extra') || '[]');
+    const grid = document.getElementById('sensors-grid');
+ 
+    // Quita las tarjetas extra que ya estaban pintadas, para no duplicar
+    grid.querySelectorAll('.extra-device').forEach(el => el.remove());
+ 
+    dispositivos.forEach(d => {
+      const div = document.createElement('div');
+      div.className = 'sensor-card sc-offline extra-device';
+      div.innerHTML = `
+        <div class="sensor-card-header">
+          <div>
+            <div class="sensor-name-big">${d.nombre}</div>
+            <div class="sensor-device">MAC: ${d.mac}</div>
+          </div>
+          <span class="s-badge sb-offline">● SIN CONECTAR</span>
+        </div>
+        <div class="sensor-info-row">
+          <div class="sensor-info-item"><div class="sii-label">Temperatura</div><div class="sii-val">— Pendiente</div></div>
+          <div class="sensor-info-item"><div class="sii-label">pH</div><div class="sii-val">— Pendiente</div></div>
+          <div class="sensor-info-item"><div class="sii-label">Oxígeno</div><div class="sii-val">— Pendiente</div></div>
+        </div>
+        <div class="sensor-divider"></div>
+        <div class="sensor-last">Registrado — esperando conexión del dispositivo</div>
+        <div class="sensor-actions">
+          <div class="s-btn danger" onclick="eliminarDispositivo(${d.id})">✕ Eliminar</div>
+        </div>`;
+      grid.appendChild(div);
+    });
+  }
+ 
   function exportLog() {
+    const csv = 'Hora,Dispositivo,Evento,Estado\n';
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url; link.download = 'log_sensores.csv'; link.click();
     showToast('⬇️', 'Log exportado correctamente');
   }
-
+ 
   function showToast(icon, msg) {
     document.getElementById('toast-icon').textContent = icon;
     document.getElementById('toast-msg').textContent = msg;
@@ -149,6 +233,11 @@
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 3000);
   }
+ 
+  window.addEventListener('DOMContentLoaded', () => {
+    cargarBadgeAlertas();
+    renderDispositivosExtra();
+  });
 </script>
 <script>
   function cerrarSesion() {
@@ -158,3 +247,4 @@
 </script>
 </body>
 </html>
+ 

@@ -7,15 +7,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <link rel="stylesheet" href="../css/style.css">
-  <link rel="icon" type="image/png" href="../img/log.png">
+  <link rel="icon" type="image/png" href="./img/log.png">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#00c8ff">
+  <link rel="apple-touch-icon" href="./img/log.png">
 </head>
 <body>
 <div class="water-bg"></div>
-
+ 
 <div class="sidebar">
   <div class="sidebar-logo">
     <div class="logo-mark">
-      <div class="logo-icon" style="background:none;padding:0;"><img src="../img/log.png" style="width:40px;height:40px;border-radius:10px;" alt="logo"></div>
+      <div class="logo-icon" style="background:none;padding:0;"><img src="./img/log.png" style="width:40px;height:40px;border-radius:10px;" alt="logo"></div>
       <div><div class="logo-text">AquaSense</div><div class="logo-sub">IoT Monitoring v1.0</div></div>
     </div>
   </div>
@@ -41,7 +44,7 @@
     </div>
   </div>
 </div>
-
+ 
 <div class="main">
   <div class="topbar">
     <div>
@@ -55,9 +58,9 @@
       <div class="btn-icon" style="position:relative;">🔔<span class="notif-badge" id="notif-count">0</span></div>
     </div>
   </div>
-
+ 
   <div class="content">
-
+ 
     <!-- PANEL GENERAR -->
     <div class="chart-card fade-in" style="position:relative;overflow:hidden;">
       <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--blue),var(--green),transparent);"></div>
@@ -73,7 +76,7 @@
         </button>
       </div>
     </div>
-
+ 
     <!-- PREVIEW REPORTE -->
     <div id="reporte-preview" class="chart-card fade-in" style="display:none;border-color:var(--border);">
       <div style="background:linear-gradient(135deg,rgba(56,182,255,0.08),rgba(0,220,180,0.06));padding:18px 22px;margin:-18px -18px 18px;border-radius:14px 14px 0 0;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;">
@@ -88,7 +91,7 @@
         </div>
         <button class="btn-sm" onclick="document.getElementById('reporte-preview').style.display='none'">✕ Cerrar</button>
       </div>
-
+ 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
         <div>
           <div style="font-size:0.65rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;font-family:'Space Mono',monospace;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border2);">📡 Valores de Sensores</div>
@@ -105,124 +108,131 @@
         </div>
       </div>
     </div>
-
-    <!-- HISTORIAL DE REPORTES (local session) -->
+ 
+    <!-- HISTORIAL DE REPORTES -->
     <div class="section-header fade-in">
-      <div class="section-title">Reportes Generados · Sesión actual</div>
-      <button class="btn-sm" onclick="exportarTodo()">⬇ CSV</button>
+      <div class="section-title">Reportes Generados</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-sm" onclick="cargarReportesGuardados()">↻ Actualizar</button>
+        <button class="btn-sm" onclick="exportarTodo()">⬇ CSV</button>
+      </div>
     </div>
-
+ 
     <div class="chart-card fade-in" style="padding:0;">
       <div style="overflow-x:auto;">
         <table class="readings-table">
-          <thead>骨头<th>ID</th><th>Tipo</th><th>Generado por</th><th>pH</th><th>Temp.</th><th>OD</th><th>Turbidez</th><th>Estado</th><th>Fecha</th></tr>
+          <thead><tr><th>ID</th><th>Tipo</th><th>Generado por</th><th>pH</th><th>Temp.</th><th>OD</th><th>Turbidez</th><th>Estado</th><th>Fecha</th></tr>
           </thead>
           <tbody id="reportes-tbody">
-            <tr><td colspan="9" class="empty-state">Genera un reporte para verlo aquí</td></tr>
+            <tr><td colspan="9" class="empty-state">Cargando historial...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
-
+ 
   </div>
 </div>
-
+ 
 <div id="toast"><span id="toast-icon">ℹ️</span><span id="toast-msg">Mensaje</span></div>
-
+ 
+<script src="./js/pwa.js"></script>
 <script>
   // ============================================================
-  //  CONFIGURACIÓN DINÁMICA DE API — Obtiene IP desde localStorage
+  //  CONFIGURACIÓN DE API — UNIFICADA con el resto del sitio
   // ============================================================
-  function getAPIBaseURL() {
-    let ip = localStorage.getItem('aquasense_ip') || 'localhost';
-    return `http://${ip}:5000`;
-  }
-  
-  const API = getAPIBaseURL();
+  const API = 'https://aquasense-t0pf.onrender.com';
   let reportesLocales = [];
-
-  // Función para cambiar IP desde consola (útil para pruebas)
-  function cambiarIP() {
-    const actual = localStorage.getItem('aquasense_ip') || 'localhost';
-    const nueva = prompt(`IP actual: ${actual}\n\nIngresa la nueva IP del servidor:`, actual);
-    if (nueva && nueva.trim()) {
-      localStorage.setItem('aquasense_ip', nueva.trim());
-      location.reload();
-    }
-  }
-
+ 
   const RANGOS = {
     temperatura:{ min:20, max:30, unit:'°C' },
     ph:         { min:6.5, max:8.5, unit:'pH' },
     oxigeno:    { min:5, max:10, unit:'mg/L' },
     turbidez:   { min:0, max:5, unit:'NTU' },
   };
-
+ 
   function updateClock() {
     document.getElementById('clock').textContent =
       new Date().toLocaleTimeString('es-CO', { hour12: false });
   }
   setInterval(updateClock, 1000); updateClock();
-
+ 
   function estadoSensor(sensor, val) {
     const r = RANGOS[sensor];
     if (!r || val === undefined) return { ok: true };
     return { ok: val >= r.min && val <= r.max };
   }
-
+ 
+  // ============================================================
+  //  CARGA EL HISTORIAL REAL DESDE LA BASE DE DATOS
+  //  (nota: la tabla `informes` solo guarda fecha/tipo/usuario,
+  //  no los valores de sensores de ese momento — por eso los
+  //  reportes cargados desde la BD muestran '--' en pH/Temp/OD/
+  //  Turbidez. Solo los reportes generados en esta misma sesión
+  //  muestran esos valores completos.)
+  // ============================================================
+  async function cargarReportesGuardados() {
+    try {
+      const res = await axios.get(`${API}/getReportes`);
+      // [[id_reporte, fecha_generada, tipo_reporte, id_usuario], ...]
+      const deBD = res.data.map(([id, fecha, tipo, idUsuario]) => ({
+        id,
+        usuario: idUsuario ? `Usuario #${idUsuario}` : 'Usuario',
+        vals: {},
+        estado: 'N/D',
+        fecha: new Date(fecha).toLocaleString('es-CO'),
+      }));
+      reportesLocales = deBD;
+      renderTablaReportes();
+    } catch(e) {
+      console.error('No se pudo cargar el historial de reportes:', e);
+      showToast('⚠️', 'No se pudo cargar el historial guardado');
+    }
+  }
+ 
   async function generarReporte() {
     const btn = document.getElementById('btn-generar');
     btn.style.opacity = '0.6'; btn.style.pointerEvents = 'none';
     document.getElementById('gen-icon').innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,0.2);border-top-color:#000;border-radius:50%;animation:spin 0.6s linear infinite;"></span>';
-
+ 
     try {
-      // 1. Obtener datos actuales
       const datosRes = await axios.get(`${API}/getDatos`);
       const rows = datosRes.data;
-
-      // Toma el último valor de cada sensor
+ 
       const vals = {};
       rows.forEach(([tipo, valor]) => {
         const t = tipo.toLowerCase();
         if (vals[t] === undefined) vals[t] = parseFloat(valor);
       });
-
-      // 2. Obtener alertas activas
+ 
       const alertasRes = await axios.get(`${API}/getAlertas`);
       const alertas = alertasRes.data;
-
-      // 3. Llamar /generarReporte en la API (guarda en BD)
+ 
       await axios.post(`${API}/generarReporte`);
-
-      // 4. Determinar estado del agua
+ 
       const todoOk = ['temperatura','ph','oxigeno','turbidez'].every(s => estadoSensor(s, vals[s]).ok);
       const estadoLabel = todoOk ? 'APTA' : 'ALERTA';
       const estadoColor = todoOk ? 'var(--green)' : 'var(--yellow)';
-
+ 
       const usuario = document.getElementById('input-usuario').value || 'Usuario';
       const ahora   = new Date().toLocaleString('es-CO');
-      const newId   = reportesLocales.length + 1;
-
-      reportesLocales.unshift({ id: newId, usuario, vals, alertas, estado: estadoLabel, fecha: ahora });
-      renderTablaReportes();
-
-      // 5. Mostrar preview
+ 
       mostrarPreview({ usuario, vals, alertas, estado: estadoLabel, estadoColor, fecha: ahora });
       showToast('✅', `Reporte guardado en la base de datos`);
-
-      // Actualizar badge alertas
+ 
       document.getElementById('alert-count').textContent = alertas.length;
       document.getElementById('notif-count').textContent = alertas.length;
-
+ 
+      await cargarReportesGuardados();
+ 
     } catch(e) {
       console.error('Error:', e);
       showToast('❌', 'Error al conectar con la API. Verifica que el servidor esté corriendo.');
     }
-
+ 
     btn.style.opacity = ''; btn.style.pointerEvents = '';
     document.getElementById('gen-icon').textContent = '📊';
   }
-
+ 
   function mostrarPreview({ usuario, vals, alertas, estado, estadoColor, fecha }) {
     document.getElementById('rp-fecha').textContent   = fecha;
     document.getElementById('rp-usuario').textContent = usuario;
@@ -234,8 +244,7 @@
     document.getElementById('rp-badge').textContent   = `AGUA ${estado}`;
     document.getElementById('rp-badge').style.color   = estadoColor;
     document.getElementById('rp-badge').style.borderColor = estadoColor;
-
-    // Sensores
+ 
     const sensInfo = [
       { key:'ph',          icon:'⚗️', label:'pH',         bg:'rgba(0,220,180,0.12)' },
       { key:'temperatura', icon:'🌡️', label:'Temperatura',bg:'rgba(56,182,255,0.12)' },
@@ -255,8 +264,7 @@
         </div>
       </div>`;
     }).join('');
-
-    // Alertas
+ 
     document.getElementById('rp-alertas').innerHTML = alertas.length === 0
       ? '<div style="text-align:center;padding:16px;color:var(--text3);font-size:0.75rem;">✅ Sin alertas activas</div>'
       : alertas.map(([msg]) => `
@@ -265,32 +273,32 @@
             <div style="flex:1;color:var(--text2);">⚠ ${msg}</div>
             <div style="font-size:0.58rem;font-weight:700;font-family:'Space Mono',monospace;color:var(--red);">ACTIVA</div>
           </div>`).join('');
-
+ 
     document.getElementById('reporte-preview').style.display = 'block';
     document.getElementById('reporte-preview').scrollIntoView({ behavior:'smooth', block:'nearest' });
   }
-
+ 
   function renderTablaReportes() {
     const tbody = document.getElementById('reportes-tbody');
     if (!reportesLocales.length) {
       tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Sin reportes generados</td></tr>'; return;
     }
     tbody.innerHTML = reportesLocales.map(r => {
-      const c = r.estado === 'APTA' ? 'var(--green)' : 'var(--yellow)';
+      const c = r.estado === 'APTA' ? 'var(--green)' : (r.estado === 'N/D' ? 'var(--text3)' : 'var(--yellow)');
       return `<tr>
         <td style="font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--text3);">RPT-${String(r.id).padStart(3,'0')}</td>
         <td><span style="background:rgba(56,182,255,0.1);color:var(--blue);border:1px solid rgba(56,182,255,0.2);font-size:0.6rem;font-weight:600;border-radius:6px;padding:3px 9px;font-family:'Space Mono',monospace;">Calidad del Agua</span></td>
         <td style="color:var(--text1);">${r.usuario}</td>
         <td style="font-family:'Space Mono',monospace;font-size:0.7rem;">${r.vals.ph?.toFixed(2)??'--'}</td>
-        <td style="font-family:'Space Mono',monospace;font-size:0.7rem;">${r.vals.temperatura?.toFixed(1)??'--'}°C</td>
-        <td style="font-family:'Space Mono',monospace;font-size:0.7rem;">${r.vals.oxigeno?.toFixed(2)??'--'} mg/L</td>
-        <td style="font-family:'Space Mono',monospace;font-size:0.7rem;">${r.vals.turbidez?.toFixed(2)??'--'} NTU</td>
+        <td style="font-family:'Space Mono',monospace;font-size:0.7rem;">${r.vals.temperatura?.toFixed(1)??'--'}${r.vals.temperatura!==undefined?'°C':''}</td>
+        <td style="font-family:'Space Mono',monospace;font-size:0.7rem;">${r.vals.oxigeno?.toFixed(2)??'--'}${r.vals.oxigeno!==undefined?' mg/L':''}</td>
+        <td style="font-family:'Space Mono',monospace;font-size:0.7rem;">${r.vals.turbidez?.toFixed(2)??'--'}${r.vals.turbidez!==undefined?' NTU':''}</td>
         <td><span style="color:${c};font-size:0.68rem;font-weight:700;font-family:'Space Mono',monospace;">${r.estado}</span></td>
         <td style="font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--text3);">${r.fecha}</td>
       </tr>`;
     }).join('');
   }
-
+ 
   function exportarTodo() {
     if (!reportesLocales.length) { showToast('⚠️','Sin reportes'); return; }
     const rows = [['ID','Usuario','pH','Temp','OD','Turbidez','Estado','Fecha'],
@@ -303,7 +311,7 @@
     a.click();
     showToast('⬇️','CSV exportado');
   }
-
+ 
   function showToast(icon, msg) {
     document.getElementById('toast-icon').textContent = icon;
     document.getElementById('toast-msg').textContent  = msg;
@@ -311,16 +319,14 @@
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 3500);
   }
-
-  // Función para actualizar el indicador de conexión
+ 
   function setConnectionStatus(ok) {
     const dot = document.getElementById('conn-dot');
     const text = document.getElementById('conn-text');
     if (dot) dot.className = 'mini-dot' + (ok ? '' : ' offline');
     if (text) text.textContent = ok ? 'Conectado' : 'Sin conexión';
   }
-
-  // Cargar alertas al iniciar para el badge
+ 
   window.addEventListener('DOMContentLoaded', async () => {
     try {
       const r = await axios.get(`${API}/getAlertas`);
@@ -332,6 +338,7 @@
       setConnectionStatus(false);
       showToast('⚠️', `No se pudo conectar a ${API}`);
     }
+    cargarReportesGuardados();
   });
 </script>
 <style>@keyframes spin { to { transform:rotate(360deg); } }</style>
@@ -343,3 +350,4 @@
 </script>
 </body>
 </html>
+ 

@@ -154,6 +154,19 @@ def generarReporte():
     conn.commit()
     cursor.close(); conn.close()
     return jsonify({"mensaje": "reporte generado"})
+    
+@app.route('/getReportes', methods=['GET'])
+def getReportes():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id_reporte, fecha_generada, tipo_reporte, id_usuario
+        FROM informes
+        ORDER BY fecha_generada DESC
+    """)
+    data = cursor.fetchall()
+    cursor.close(); conn.close()
+    return jsonify(data)
 
 @app.route('/getSensores', methods=['GET'])
 def getSensores():
