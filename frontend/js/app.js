@@ -2,6 +2,11 @@
 //  CONFIGURACIÓN DE API
 // ============================================================
 function getAPIBaseURL() {
+  if (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1') {
+    return 'http://127.0.0.1:5000';
+  }
+
   return 'https://aquasense-t0pf.onrender.com';
 }
 

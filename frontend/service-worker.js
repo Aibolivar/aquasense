@@ -5,11 +5,11 @@
 //   - API (getDatos, getAlertas)  -> network-first, cae a cache
 //     con la última respuesta buena si no hay internet
 // ============================================================
-
-const CACHE_VERSION = 'aquasense-v1';
+ 
+const CACHE_VERSION = 'aquasense-v2';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const API_CACHE     = `${CACHE_VERSION}-api`;
-
+ 
 // Ajusta esta lista si agregas o renombras páginas
 const STATIC_ASSETS = [
   './',
@@ -30,9 +30,9 @@ const STATIC_ASSETS = [
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
   'https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js',
 ];
-
+ 
 const API_HOST = 'aquasense-t0pf.onrender.com';
-
+ 
 // ── INSTALL: precachea el "app shell" ──
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -42,7 +42,7 @@ self.addEventListener('install', (event) => {
   );
   self.skipWaiting();
 });
-
+ 
 // ── ACTIVATE: limpia caches viejos de versiones anteriores ──
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -56,19 +56,19 @@ self.addEventListener('activate', (event) => {
   );
   self.clients.claim();
 });
-
+ 
 // ── FETCH: enruta según el tipo de recurso ──
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-
+ 
   if (url.hostname === API_HOST) {
     event.respondWith(networkFirstAPI(event.request));
     return;
   }
-
+ 
   event.respondWith(cacheFirstStatic(event.request));
 });
-
+ 
 // Datos de sensores/alertas: intenta red primero, si falla usa la última copia cacheada
 async function networkFirstAPI(request) {
   const cache = await caches.open(API_CACHE);
@@ -85,12 +85,12 @@ async function networkFirstAPI(request) {
     return new Response('[]', { headers: { 'Content-Type': 'application/json' } });
   }
 }
-
+ 
 // App shell (HTML/CSS/JS/fuentes): cache primero, red de respaldo
 async function cacheFirstStatic(request) {
   const cached = await caches.match(request);
   if (cached) return cached;
-
+ 
   try {
     const response = await fetch(request);
     if (response && response.ok) {
@@ -105,3 +105,4 @@ async function cacheFirstStatic(request) {
     throw err;
   }
 }
+ 

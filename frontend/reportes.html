@@ -138,9 +138,11 @@
 <script src="./js/pwa.js"></script>
 <script>
   // ============================================================
-  //  CONFIGURACIÓN DE API — UNIFICADA con el resto del sitio
+  //  CONFIGURACIÓN DE API — UNIFICADA con el resto del sitios
   // ============================================================
-  const API = 'https://aquasense-t0pf.onrender.com';
+  const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? `http://${window.location.hostname}:5000`
+  : 'https://aquasense-t0pf.onrender.com';
   let reportesLocales = [];
  
   const RANGOS = {

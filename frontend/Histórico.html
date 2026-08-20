@@ -178,7 +178,9 @@
   // ============================================================
   //  CONFIGURACIÓN DE API — UNIFICADA con index.html y alertas.html
   // ============================================================
-  const API = 'https://aquasense-t0pf.onrender.com';
+ const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? `http://${window.location.hostname}:5000`
+  : 'https://aquasense-t0pf.onrender.com';
  
   let allData   = [];
   let histChart = null;

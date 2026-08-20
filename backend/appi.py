@@ -12,7 +12,9 @@ app.secret_key = os.getenv("SECRET_KEY", "supersecret123")
 CORS(app, supports_credentials=True, origins=[
     "https://spontaneous-duckanoo-37b764.netlify.app",
     "http://localhost:5000",
-    "http://localhost:8080"
+    "http://localhost:8080",
+    "http://127.0.0.1:5000",
+    "http://127.0.0.1:8080"
 ])
 
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -148,22 +150,33 @@ def getAlertas():
 
 @app.route('/generarReporte', methods=['POST'])
 def generarReporte():
+    usuario = 'Usuario'
+    if request.is_json:
+        usuario = request.json.get('usuario', 'Usuario')
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO informes (fecha_generada, tipo_reporte) VALUES (NOW(),'calidad del agua')")
+    cursor.execute(
+        "INSERT INTO informes (fecha_generada, tipo_reporte, generado_por) VALUES (NOW(), 'calidad del agua', %s)",
+        (usuario,)
+    )
     conn.commit()
     cursor.close(); conn.close()
     return jsonify({"mensaje": "reporte generado"})
-    
+ 
 @app.route('/getReportes', methods=['GET'])
 def getReportes():
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT id_reporte, fecha_generada, tipo_reporte, id_usuario
+        SELECT id_reporte, fecha_generada, tipo_reporte, generado_por
         FROM informes
         ORDER BY fecha_generada DESC
     """)
+    data = cursor.fetchall()
+    cursor.close(); conn.close()
+    return jsonify(data)
+ 
+
     data = cursor.fetchall()
     cursor.close(); conn.close()
     return jsonify(data)
@@ -178,4 +191,4 @@ def getSensores():
     return jsonify(data)
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)  
