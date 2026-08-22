@@ -4,9 +4,11 @@
 //   - Páginas/CSS/JS/fuentes/CDN -> cache-first (funciona offline)
 //   - API (getDatos, getAlertas)  -> network-first, cae a cache
 //     con la última respuesta buena si no hay internet
+//   - Peticiones que NO son GET (sendDato, login, etc.) -> nunca
+//     se interceptan, van directo a la red como siempre
 // ============================================================
  
-const CACHE_VERSION = 'aquasense-v2';
+const CACHE_VERSION = 'aquasense-v3';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const API_CACHE     = `${CACHE_VERSION}-api`;
  
@@ -24,6 +26,7 @@ const STATIC_ASSETS = [
   './css/style.css',
   './js/app.js',
   './js/pwa.js',
+  './js/alertas-notif.js',
   './img/log.png',
   './manifest.json',
   'https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700;900&display=swap',
@@ -31,7 +34,15 @@ const STATIC_ASSETS = [
   'https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js',
 ];
  
-const API_HOST = 'aquasense-t0pf.onrender.com';
+// Hosts que cuentan como "la API" — incluye producción y pruebas locales
+const API_HOSTS = [
+  'aquasense-t0pf.onrender.com',
+  'localhost',
+  '127.0.0.1',
+];
+ 
+// Rutas de la API que devuelven datos (network-first + cache de respaldo)
+const API_GET_PATHS = ['/getDatos', '/getAlertas', '/getReportes', '/getSensores', '/estadoMedicion'];
  
 // ── INSTALL: precachea el "app shell" ──
 self.addEventListener('install', (event) => {
@@ -57,16 +68,27 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
  
-// ── FETCH: enruta según el tipo de recurso ──
+// ── FETCH: enruta según método y tipo de recurso ──
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+  const request = event.request;
+  const url = new URL(request.url);
  
-  if (url.hostname === API_HOST) {
-    event.respondWith(networkFirstAPI(event.request));
+  // Nunca interceptar peticiones que no son GET (POST, PUT, DELETE...).
+  // sendDato, login, registro, generarReporte, iniciarMedicion, etc.
+  // van directo a la red, tal cual, sin pasar por cache.
+  if (request.method !== 'GET') {
+    return; // deja que el navegador la maneje normalmente
+  }
+ 
+  const esHostAPI = API_HOSTS.some((h) => url.hostname === h);
+  const esRutaAPI = API_GET_PATHS.some((p) => url.pathname === p || url.pathname.endsWith(p));
+ 
+  if (esHostAPI && esRutaAPI) {
+    event.respondWith(networkFirstAPI(request));
     return;
   }
  
-  event.respondWith(cacheFirstStatic(event.request));
+  event.respondWith(cacheFirstStatic(request));
 });
  
 // Datos de sensores/alertas: intenta red primero, si falla usa la última copia cacheada
@@ -105,4 +127,3 @@ async function cacheFirstStatic(request) {
     throw err;
   }
 }
- 

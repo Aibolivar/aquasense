@@ -2,19 +2,17 @@
 //  CONFIGURACIÓN DE API
 // ============================================================
 function getAPIBaseURL() {
-  if (window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1') {
-    return 'http://127.0.0.1:5000';
+  if (window.location.hostname === 'aquasense-t0pf.onrender.com') {
+    return 'https://aquasense-t0pf.onrender.com';
   }
-
-  return 'https://aquasense-t0pf.onrender.com';
+  return `http://${window.location.hostname}:5000`;
 }
-
+ 
 const CONFIG = {
   API_BASE_URL: getAPIBaseURL(),
   REFRESH_INTERVAL_MS: 30000,
 };
-
+ 
 // Para cambiar IP: ejecuta cambiarIP() en la consola (F12)
 function cambiarIP() {
   const actual = localStorage.getItem('aquasense_ip') || 'localhost';
@@ -24,7 +22,7 @@ function cambiarIP() {
     location.reload();
   }
 }
-
+ 
 // ============================================================
 //  RANGOS ÓPTIMOS
 //  sensor 1=pH  2=temperatura  3=turbidez  4=oxigeno
@@ -35,7 +33,7 @@ const RANGES = {
   oxigeno:     { min: 5,   max: 10,  absMin: 0,  absMax: 15,  unit: 'mg/L', label: 'Oxígeno Disuelto' },
   turbidez:    { min: 0,   max: 5,   absMin: 0,  absMax: 15,  unit: 'NTU',  label: 'Turbidez' },
 };
-
+ 
 // ============================================================
 //  STATE
 // ============================================================
@@ -46,7 +44,7 @@ let readingHistory  = [];
 let currentTimeRange = '1H';
 let isLoading       = false;
 let lastValues      = {};
-
+ 
 // ============================================================
 //  CLOCK
 // ============================================================
@@ -56,14 +54,14 @@ function updateClock() {
 }
 setInterval(updateClock, 1000);
 updateClock();
-
+ 
 // ============================================================
 //  API CALLS
 // ============================================================
 async function fetchLatest() {
   const response = await axios.get(`${CONFIG.API_BASE_URL}/getDatos`);
   const rows = response.data; // [[tipo_sensor, valor, fecha_hora], ...]
-
+ 
   const latest = { uptime: 99.0, timestamp: new Date().toISOString() };
   // Toma el valor más reciente de cada sensor (rows viene ORDER BY fecha_hora DESC)
   rows.forEach(([tipo, valor, fecha]) => {
@@ -75,11 +73,11 @@ async function fetchLatest() {
   });
   return latest;
 }
-
+ 
 async function fetchHistory() {
   const response = await axios.get(`${CONFIG.API_BASE_URL}/getDatos`);
   const rows = response.data;
-
+ 
   // Agrupa por timestamp
   const map = {};
   rows.forEach(([tipo, valor, fecha]) => {
@@ -92,7 +90,7 @@ async function fetchHistory() {
   });
   return Object.values(map).reverse();
 }
-
+ 
 async function fetchAlerts() {
   const response = await axios.get(`${CONFIG.API_BASE_URL}/getAlertas`);
   // [[mensaje, fecha_hora], ...]
@@ -103,7 +101,7 @@ async function fetchAlerts() {
     timestamp,
   }));
 }
-
+ 
 // ============================================================
 //  FUNCIÓN PARA FORZAR ACTUALIZACIÓN
 // ============================================================
@@ -111,7 +109,7 @@ function forceRefresh() {
   refreshData();
   showToast('Actualizando datos...', 'info');
 }
-
+ 
 // ============================================================
 //  STATUS HELPERS
 // ============================================================
@@ -122,14 +120,14 @@ function getStatus(param, value) {
   if (value < r.min    || value > r.max)    return 'warn';
   return 'ok';
 }
-
+ 
 function statusLabel(s)      { return { ok: 'NORMAL', warn: 'ALERTA', alert: 'CRÍTICO' }[s] || 'NORMAL'; }
 function statusBadgeClass(s) { return { ok: 'badge-ok', warn: 'badge-warn', alert: 'badge-alert' }[s] || 'badge-ok'; }
 function statusCardClass(s)  { return { ok: 'status-ok', warn: 'status-warn', alert: 'status-alert' }[s] || 'status-ok'; }
 function statusGlowClass(s)  { return { ok: 'metric-ok-glow', warn: 'metric-warn-glow', alert: 'metric-alert-glow' }[s] || 'metric-ok-glow'; }
 function statusColor(s)      { return { ok: 'var(--green)', warn: 'var(--yellow)', alert: 'var(--red)' }[s] || 'var(--green)'; }
 function statusFillClass(s)  { return { ok: 'fill-ok', warn: 'fill-warn', alert: 'fill-alert' }[s] || 'fill-ok'; }
-
+ 
 // ============================================================
 //  UPDATE METRIC CARD
 // ============================================================
@@ -137,18 +135,18 @@ function updateCard(id, param, value, range) {
   if (value === undefined || value === null) return;
   const status = getStatus(param, value);
   const clamp  = Math.max(5, Math.min(95, ((value - range.absMin) / (range.absMax - range.absMin)) * 100));
-
+ 
   const card = document.getElementById(`card-${id}`);
   if (!card) return;
   card.className = `metric-card ${statusCardClass(status)} fade-in`;
   card.querySelector('.metric-glow').className = `metric-glow ${statusGlowClass(status)}`;
-
+ 
   const badge = document.getElementById(`badge-${id}`);
   if (badge) { badge.className = `metric-status-badge ${statusBadgeClass(status)}`; badge.textContent = statusLabel(status); }
-
+ 
   const valEl = document.getElementById(`val-${id}`);
   if (valEl) valEl.textContent = value;
-
+ 
   const bar = document.getElementById(`bar-${id}`);
   if (bar) {
     bar.style.width = clamp + '%';
@@ -156,7 +154,7 @@ function updateCard(id, param, value, range) {
     const dot = bar.querySelector('.range-dot');
     if (dot) dot.style.background = statusColor(status);
   }
-
+ 
   const prev    = lastValues[param];
   const trendEl = document.getElementById(`trend-${id}`);
   if (trendEl && prev !== undefined) {
@@ -174,7 +172,7 @@ function updateCard(id, param, value, range) {
   }
   lastValues[param] = value;
 }
-
+ 
 // ============================================================
 //  REFRESH DATA (usado por index.html)
 // ============================================================
@@ -183,26 +181,26 @@ async function refreshData() {
   isLoading = true;
   const refreshIcon = document.getElementById('refresh-icon');
   if (refreshIcon) refreshIcon.innerHTML = '<span class="spinner"></span>';
-
+ 
   try {
     const latest = await fetchLatest();
-
+ 
     updateCard('temp',  'temperatura', latest.temperatura, RANGES.temperatura);
     updateCard('ph',    'ph',          latest.ph,          RANGES.ph);
     updateCard('od',    'oxigeno',     latest.oxigeno,     RANGES.oxigeno);
     updateCard('turb',  'turbidez',    latest.turbidez,    RANGES.turbidez);
-
+ 
     // Uptime card (sin sensor real, se muestra estático)
     const uptimeEl = document.getElementById('val-uptime');
     const uptimeBar = document.getElementById('bar-uptime');
     if (uptimeEl)  uptimeEl.textContent    = '99.0';
     if (uptimeBar) uptimeBar.style.width   = '99%';
-
+ 
     const lastUpdate = document.getElementById('last-update');
     if (lastUpdate) {
       lastUpdate.innerHTML = `<span class="mini-dot"></span> Actualizado ${new Date().toLocaleTimeString('es-CO', { hour12: false })}`;
     }
-
+ 
     // Tabla lecturas
     readingHistory.unshift({
       hora:   new Date().toLocaleTimeString('es-CO', { hour12: false, hour: '2-digit', minute: '2-digit' }),
@@ -214,14 +212,14 @@ async function refreshData() {
     });
     if (readingHistory.length > 10) readingHistory.pop();
     renderReadingsTable();
-
+ 
     await refreshHistory();
-
+ 
     alertList = await fetchAlerts();
     renderAlerts();
-
+ 
     setConnectionStatus(true);
-
+ 
   } catch (err) {
     console.error('Error fetching data:', err);
     setConnectionStatus(false);
@@ -231,7 +229,7 @@ async function refreshData() {
     if (refreshIcon) refreshIcon.textContent = '↻';
   }
 }
-
+ 
 function computeOverallStatus(d) {
   const statuses = [
     getStatus('temperatura', d.temperatura),
@@ -243,17 +241,17 @@ function computeOverallStatus(d) {
   if (statuses.includes('warn'))  return 'warn';
   return 'ok';
 }
-
+ 
 // ============================================================
 //  HISTORY CHART
 // ============================================================
 async function refreshHistory() {
   const data = await fetchHistory();
-
+ 
   const labels = data.map(d =>
     new Date(d.timestamp).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
   );
-
+ 
   if (historyChart) {
     historyChart.data.labels           = labels;
     historyChart.data.datasets[0].data = data.map(d => d.temperatura);
@@ -263,7 +261,7 @@ async function refreshHistory() {
     historyChart.update('none');
   }
 }
-
+ 
 function initHistoryChart() {
   const canvas = document.getElementById('chart-history');
   if (!canvas) return;
@@ -295,7 +293,7 @@ function initHistoryChart() {
     },
   });
 }
-
+ 
 // ============================================================
 //  STATUS DONUT CHART
 // ============================================================
@@ -328,7 +326,7 @@ function initStatusChart() {
     }],
   });
 }
-
+ 
 // ============================================================
 //  ALERTS RENDER
 // ============================================================
@@ -340,9 +338,9 @@ function renderAlerts() {
   const nc = document.getElementById('notif-count');
   if (ac) ac.textContent = count;
   if (nc) nc.textContent = count;
-
+ 
   if (!count) { el.innerHTML = '<div class="empty-state">✅ Sin alertas activas</div>'; return; }
-
+ 
   el.innerHTML = alertList.map(a => {
     const ts       = new Date(a.timestamp);
     const timeDiff = Math.round((Date.now() - ts) / 60000);
@@ -356,14 +354,14 @@ function renderAlerts() {
       </div>`;
   }).join('');
 }
-
+ 
 // ============================================================
 //  READINGS TABLE
 // ============================================================
 function renderReadingsTable() {
   const tbody = document.getElementById('readings-tbody');
   if (!tbody) return;
-  if (!readingHistory.length) { tbody.innerHTML = '骨头顶<td colspan="5" class="empty-state">Sin datos</td> </tr>'; return; }
+  if (!readingHistory.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Sin datos</td></tr>'; return; }
   tbody.innerHTML = readingHistory.map(r => {
     const sc = statusColor(r.status);
     return `
@@ -377,7 +375,7 @@ function renderReadingsTable() {
     `;
   }).join('');
 }
-
+ 
 // ============================================================
 //  UI HELPERS
 // ============================================================
@@ -387,7 +385,7 @@ function setConnectionStatus(ok) {
   if (dot)  dot.className = 'mini-dot' + (ok ? '' : ' offline');
   if (text) text.textContent = ok ? 'Conectado' : 'Sin conexión';
 }
-
+ 
 function showToast(msg, type = 'info') {
   const toast = document.getElementById('toast');
   if (!toast) return;
@@ -396,14 +394,14 @@ function showToast(msg, type = 'info') {
   toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), 3500);
 }
-
+ 
 function setTimeRange(range, el) {
   currentTimeRange = range;
   document.querySelectorAll('.time-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   refreshHistory();
 }
-
+ 
 function exportCSV() {
   if (!readingHistory.length) { showToast('Sin datos para exportar', 'warn'); return; }
   const rows = [['Hora', 'Temperatura (°C)', 'pH', 'Oxígeno (mg/L)', 'Turbidez (NTU)', 'Estado']];
@@ -415,7 +413,7 @@ function exportCSV() {
   a.click();
   showToast('CSV descargado', 'ok');
 }
-
+ 
 // ============================================================
 //  INIT
 // ============================================================

@@ -6,7 +6,7 @@
   <title>AquaSense — Alertas</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="./css/style.css">
   <link rel="icon" type="image/png" href="./img/log.png">
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#00c8ff">
@@ -27,6 +27,7 @@
     <a class="nav-item" href="index.html"><span class="nav-icon">🏠</span> Dashboard</a>
     <a class="nav-item" href="Histórico.html"><span class="nav-icon">📊</span> Histórico</a>
     <a class="nav-item active" href="alertas.html"><span class="nav-icon">🔔</span> Alertas<span class="nav-badge" id="alert-count">0</span></a>
+    <a class="nav-item" href="recomendaciones.html"><span class="nav-icon">💊</span> Recomendaciones</a>
   </div>
   <div class="sidebar-section" style="margin-top:4px;">
     <div class="sidebar-label">Configuración</div>
@@ -96,18 +97,32 @@
       </div>
     </div>
  
+    <!-- RECOMENDACIONES: ahora en su propia página -->
+    <div class="chart-card fade-in" style="background:linear-gradient(135deg,rgba(56,182,255,0.06),rgba(0,220,180,0.06));display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:36px;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="font-size:1.6rem;">💊</div>
+        <div>
+          <div style="font-size:0.85rem;font-weight:700;color:var(--text1);">Recomendaciones de Tratamiento</div>
+          <div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">Dosis calculada según tus alertas activas</div>
+        </div>
+      </div>
+      <a href="recomendaciones.html" class="btn-sm" style="text-decoration:none;white-space:nowrap;">Ver recomendaciones →</a>
+    </div>
+ 
     <!-- BANNER ALERTAS ACTIVAS -->
-    <div id="banner" class="fade-in" style="display:none;background:rgba(255,77,106,0.07);border:1px solid rgba(255,77,106,0.2);border-radius:12px;padding:14px 18px;gap:14px;align-items:flex-start;">
+    <div class="section-header fade-in" style="margin-bottom:14px;">
+      <div class="section-title">🔔 Alertas Activas del Sistema</div>
+    </div>
+    <div id="banner" class="fade-in" style="display:none;background:rgba(255,77,106,0.07);border:1px solid rgba(255,77,106,0.2);border-radius:12px;padding:18px 20px;gap:14px;align-items:flex-start;margin-bottom:36px;">
       <div style="font-size:1.4rem;">🔔</div>
       <div>
-        <div style="font-size:0.85rem;font-weight:700;color:var(--red);">ALERTAS ACTIVAS DEL SISTEMA</div>
         <div style="font-size:0.7rem;color:var(--text3);margin-top:2px;">Piscina 1 — ESP32-A · Requieren atención</div>
-        <div id="banner-tags" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"></div>
+        <div id="banner-tags" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;"></div>
       </div>
     </div>
  
     <!-- TABLA -->
-    <div class="section-header fade-in">
+    <div class="section-header fade-in" style="margin-top:8px;">
       <div class="section-title">Historial de Alertas · /getAlertas</div>
       <button class="btn-sm" onclick="exportarCSV()">⬇ CSV</button>
     </div>
@@ -129,8 +144,12 @@
 <div id="toast"><span id="toast-icon">ℹ️</span><span id="toast-msg">Mensaje</span></div>
  
 <script src="./js/pwa.js"></script>
-<script src="js/app.js"></script>
+<script src="./js/alertas-notif.js"></script>
 <script>
+  const API = (window.location.hostname === 'aquasense-t0pf.onrender.com')
+    ? 'https://aquasense-t0pf.onrender.com'
+    : `http://${window.location.hostname}:5000`;
+ 
   let alertasData = [];
  
   function updateClock() {
@@ -141,7 +160,7 @@
  
   async function cargarAlertas() {
     try {
-      const res = await axios.get(`${CONFIG.API_BASE_URL}/getAlertas`);
+      const res = await axios.get(`${API}/getAlertas`);
       // [[mensaje, fecha_hora], ...] — solo activas
       alertasData = res.data.map(([mensaje, fecha], i) => ({ id: i+1, mensaje, fecha }));
  
@@ -155,8 +174,11 @@
       const banner = document.getElementById('banner');
       if (n > 0) {
         banner.style.display = 'flex';
-        document.getElementById('banner-tags').innerHTML = alertasData.map(a =>
-          `<span style="background:rgba(255,77,106,0.12);border:1px solid rgba(255,77,106,0.3);color:var(--red);font-size:0.65rem;font-weight:600;border-radius:6px;padding:4px 10px;font-family:'Space Mono',monospace;">⚠ ${a.mensaje}</span>`
+        // Solo muestra los mensajes ÚNICOS (evita repetir la misma alerta
+        // cientos de veces cuando el sensor sigue fuera de rango)
+        const mensajesUnicos = [...new Set(alertasData.map(a => a.mensaje))];
+        document.getElementById('banner-tags').innerHTML = mensajesUnicos.map(msg =>
+          `<span style="background:rgba(255,77,106,0.12);border:1px solid rgba(255,77,106,0.3);color:var(--red);font-size:0.65rem;font-weight:600;border-radius:6px;padding:4px 10px;font-family:'Space Mono',monospace;">⚠ ${msg}</span>`
         ).join('');
       } else {
         banner.style.display = 'none';
@@ -219,4 +241,3 @@
 </script>
 </body>
 </html>
- 

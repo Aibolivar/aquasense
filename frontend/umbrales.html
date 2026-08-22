@@ -6,7 +6,7 @@
   <title>AquaSense — Umbrales</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="./css/style.css">
   <link rel="icon" type="image/png" href="./img/log.png">
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#00c8ff">
@@ -26,6 +26,7 @@
     <a class="nav-item" href="index.html"><span class="nav-icon">🏠</span> Dashboard</a>
     <a class="nav-item" href="Histórico.html"><span class="nav-icon">📊</span> Histórico</a>
     <a class="nav-item" href="alertas.html"><span class="nav-icon">🔔</span> Alertas<span class="nav-badge" id="alert-count">0</span></a>
+    <a class="nav-item" href="recomendaciones.html"><span class="nav-icon">💊</span> Recomendaciones</a>
   </div>
   <div class="sidebar-section" style="margin-top:4px;">
     <div class="sidebar-label">Configuración</div>
@@ -73,6 +74,27 @@
           Define los valores mínimos, óptimos y máximos para cada parámetro. Cuando un sensor supere el umbral máximo o baje del mínimo, el sistema generará una alerta automáticamente. Los valores actuales de los sensores se comparan en tiempo real contra estos umbrales.
         </div>
       </div>
+    </div>
+ 
+    <div class="chart-card fade-in" style="margin-bottom:20px;">
+      <div style="font-size:1rem;font-weight:700;color:var(--text1);margin-bottom:4px;">📐 Configuración del Estanque</div>
+      <div style="font-size:0.72rem;color:var(--text3);margin-bottom:16px;">Estos datos se usan para calcular las dosis recomendadas de tratamiento en la sección de Alertas.</div>
+      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <label style="font-size:0.62rem;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;">Largo (m)</label>
+          <input type="number" id="estanque-largo" step="0.1" min="0" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text1);padding:9px 12px;border-radius:8px;font-size:0.78rem;width:110px;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <label style="font-size:0.62rem;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;">Ancho (m)</label>
+          <input type="number" id="estanque-ancho" step="0.1" min="0" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text1);padding:9px 12px;border-radius:8px;font-size:0.78rem;width:110px;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <label style="font-size:0.62rem;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;">Profundidad (m)</label>
+          <input type="number" id="estanque-profundidad" step="0.1" min="0" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text1);padding:9px 12px;border-radius:8px;font-size:0.78rem;width:110px;">
+        </div>
+        <button class="btn-save" onclick="guardarDimensionesEstanque()">💾 Calcular y Guardar</button>
+      </div>
+      <div id="estanque-resultado" style="margin-top:14px;font-size:0.78rem;color:var(--text2);display:none;background:var(--bg3);border-radius:8px;padding:12px;"></div>
     </div>
  
     <div class="section-header fade-in">
@@ -221,8 +243,10 @@
 <div id="toast"><span id="toast-icon">ℹ️</span><span id="toast-msg">Mensaje</span></div>
  
 <script src="./js/pwa.js"></script>
+<script src="./js/alertas-notif.js"></script>
+<script src="./js/recomendaciones.js"></script>
 <script>
-  const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  const API = (window.location.hostname !== 'aquasense-t0pf.onrender.com')
   ? `http://${window.location.hostname}:5000`
   : 'https://aquasense-t0pf.onrender.com';
  
@@ -241,6 +265,42 @@
     } catch(e) {
       console.error('No se pudo cargar el conteo de alertas:', e);
     }
+  }
+ 
+  // ============================================================
+  //  DIMENSIONES DEL ESTANQUE — para cálculo de dosis en Alertas
+  // ============================================================
+  function cargarDimensionesGuardadas() {
+    const dims = window.AquaSenseRecomendaciones.obtenerDimensiones();
+    if (!dims) return;
+    document.getElementById('estanque-largo').value = dims.largo;
+    document.getElementById('estanque-ancho').value = dims.ancho;
+    document.getElementById('estanque-profundidad').value = dims.profundidad;
+    mostrarResultadoEstanque(dims);
+  }
+ 
+  function mostrarResultadoEstanque(dims) {
+    const div = document.getElementById('estanque-resultado');
+    div.style.display = 'block';
+    div.innerHTML = `
+      <strong>Volumen calculado:</strong> ${dims.volumenM3.toFixed(2)} m³<br>
+      <strong>Área:</strong> ${dims.areaM2.toFixed(2)} m² (${dims.areaHa.toFixed(4)} ha)
+    `;
+  }
+ 
+  function guardarDimensionesEstanque() {
+    const largo = parseFloat(document.getElementById('estanque-largo').value);
+    const ancho = parseFloat(document.getElementById('estanque-ancho').value);
+    const profundidad = parseFloat(document.getElementById('estanque-profundidad').value);
+ 
+    if (!largo || !ancho || !profundidad || largo <= 0 || ancho <= 0 || profundidad <= 0) {
+      showToast('⚠️', 'Completa los 3 campos con valores mayores a 0');
+      return;
+    }
+ 
+    const dims = window.AquaSenseRecomendaciones.guardarDimensiones(largo, ancho, profundidad);
+    mostrarResultadoEstanque(dims);
+    showToast('✅', 'Dimensiones guardadas — ya se pueden calcular dosis en Alertas');
   }
  
   function saveParam(name) {
@@ -275,7 +335,10 @@
     setTimeout(() => t.classList.remove('show'), 3000);
   }
  
-  window.addEventListener('DOMContentLoaded', cargarBadgeAlertas);
+  window.addEventListener('DOMContentLoaded', () => {
+    cargarBadgeAlertas();
+    cargarDimensionesGuardadas();
+  });
 </script>
 <script>
   function cerrarSesion() {
@@ -285,4 +348,3 @@
 </script>
 </body>
 </html>
- 

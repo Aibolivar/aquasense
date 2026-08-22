@@ -28,6 +28,7 @@
     <a class="nav-item" href="index.html"><span class="nav-icon">🏠</span> Dashboard</a>
     <a class="nav-item active" href="Histórico.html"><span class="nav-icon">📊</span> Histórico</a>
     <a class="nav-item" href="alertas.html"><span class="nav-icon">🔔</span> Alertas<span class="nav-badge" id="alert-count">0</span></a>
+    <a class="nav-item" href="recomendaciones.html"><span class="nav-icon">💊</span> Recomendaciones</a>
   </div>
   <div class="sidebar-section" style="margin-top:4px;">
     <div class="sidebar-label">Configuración</div>
@@ -174,13 +175,14 @@
 <div id="toast"><span id="toast-icon">ℹ️</span><span id="toast-msg">Mensaje</span></div>
  
 <script src="./js/pwa.js"></script>
+<script src="./js/alertas-notif.js"></script>
 <script>
   // ============================================================
   //  CONFIGURACIÓN DE API — UNIFICADA con index.html y alertas.html
   // ============================================================
- const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  ? `http://${window.location.hostname}:5000`
-  : 'https://aquasense-t0pf.onrender.com';
+ const API = (window.location.hostname === 'aquasense-t0pf.onrender.com')
+  ? 'https://aquasense-t0pf.onrender.com'
+  : `http://${window.location.hostname}:5000`;
  
   let allData   = [];
   let histChart = null;
