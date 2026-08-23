@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AquaSense — Histórico</title>
+  <title>AquaSense — Recomendaciones</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="./css/style.css">
   <link rel="icon" type="image/png" href="./img/log.png">
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#00c8ff">
@@ -26,9 +25,9 @@
   <div class="sidebar-section" style="margin-top:8px;">
     <div class="sidebar-label">Sistema</div>
     <a class="nav-item" href="index.html"><span class="nav-icon">🏠</span> Dashboard</a>
-    <a class="nav-item active" href="Histórico.html"><span class="nav-icon">📊</span> Histórico</a>
+    <a class="nav-item" href="Histórico.html"><span class="nav-icon">📊</span> Histórico</a>
     <a class="nav-item" href="alertas.html"><span class="nav-icon">🔔</span> Alertas<span class="nav-badge" id="alert-count">0</span></a>
-    <a class="nav-item" href="recomendaciones.html"><span class="nav-icon">💊</span> Recomendaciones</a>
+    <a class="nav-item active" href="recomendaciones.html"><span class="nav-icon">💊</span> Recomendaciones</a>
   </div>
   <div class="sidebar-section" style="margin-top:4px;">
     <div class="sidebar-label">Configuración</div>
@@ -50,124 +49,35 @@
 <div class="main">
   <div class="topbar">
     <div>
-      <div class="topbar-title">Historial de Lecturas</div>
+      <div class="topbar-title">Recomendaciones de Tratamiento</div>
       <div class="topbar-sub">Granja Integral La Aleta del Tiburón · Barranquilla</div>
     </div>
     <div class="topbar-right">
       <div class="conn-indicator"><span class="mini-dot" id="conn-dot"></span><span id="conn-text">Conectado</span></div>
-      <div class="status-pill"><span class="status-dot"></span> EN VIVO</div>
+      <div class="status-pill">💊 RECOMENDACIONES</div>
       <div class="clock" id="clock">--:--:--</div>
-      <div class="btn-icon" onclick="cargarDatos()" title="Actualizar">🔄</div>
-      <div class="btn-icon" title="Notificaciones" style="position:relative;">🔔<span class="notif-badge" id="notif-count">0</span></div>
+      <div class="btn-icon" onclick="cargarTodo()">🔄</div>
     </div>
   </div>
  
   <div class="content">
  
+    <div class="info-panel fade-in">
+      <div class="info-icon">💊</div>
+      <div>
+        <div class="info-text-title">Dosis calculada según tus alertas activas</div>
+        <div class="info-text-body">
+          Estas recomendaciones se generan automáticamente a partir de las alertas activas y las dimensiones del estanque configuradas en Umbrales. No reemplazan la asesoría de un biólogo o especialista acuícola — son una guía inicial.
+        </div>
+      </div>
+    </div>
+ 
     <div class="section-header fade-in">
-      <div class="section-title">Resumen · Últimos valores</div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn-sm" onclick="cargarDatos()"><span id="refresh-icon">↻</span> Actualizar</button>
-        <button class="btn-sm" onclick="exportarCSV()">⬇ CSV</button>
-      </div>
+      <div class="section-title">Tratamientos Sugeridos</div>
+      <a href="alertas.html" class="btn-sm" style="text-decoration:none;">🔔 Ver todas las alertas →</a>
     </div>
  
-    <!-- TARJETAS ÚLTIMOS VALORES -->
-    <div class="metrics-grid fade-in">
-      <div class="metric-card status-ok" id="hcard-temp">
-        <div class="metric-glow metric-ok-glow"></div>
-        <div class="metric-header">
-          <div class="metric-icon-wrap icon-blue">🌡️</div>
-          <span class="metric-status-badge badge-ok" id="hbadge-temp">--</span>
-        </div>
-        <div>
-          <div class="metric-value"><span id="hval-temp">--</span><span class="metric-unit">°C</span></div>
-          <div class="metric-label">Temperatura · Último</div>
-        </div>
-        <div class="metric-trend" id="htrend-temp" style="color:var(--text3);">— cargando...</div>
-      </div>
- 
-      <div class="metric-card status-ok" id="hcard-ph">
-        <div class="metric-glow metric-ok-glow"></div>
-        <div class="metric-header">
-          <div class="metric-icon-wrap icon-green">⚗️</div>
-          <span class="metric-status-badge badge-ok" id="hbadge-ph">--</span>
-        </div>
-        <div>
-          <div class="metric-value"><span id="hval-ph">--</span><span class="metric-unit">pH</span></div>
-          <div class="metric-label">pH · Último</div>
-        </div>
-        <div class="metric-trend" id="htrend-ph" style="color:var(--text3);">— cargando...</div>
-      </div>
- 
-      <div class="metric-card status-ok" id="hcard-od">
-        <div class="metric-glow metric-ok-glow"></div>
-        <div class="metric-header">
-          <div class="metric-icon-wrap icon-yellow">💧</div>
-          <span class="metric-status-badge badge-ok" id="hbadge-od">--</span>
-        </div>
-        <div>
-          <div class="metric-value"><span id="hval-od">--</span><span class="metric-unit">mg/L</span></div>
-          <div class="metric-label">Oxígeno · Último</div>
-        </div>
-        <div class="metric-trend" id="htrend-od" style="color:var(--text3);">— cargando...</div>
-      </div>
- 
-      <div class="metric-card status-ok" id="hcard-turb">
-        <div class="metric-glow metric-ok-glow"></div>
-        <div class="metric-header">
-          <div class="metric-icon-wrap icon-yellow">🌫️</div>
-          <span class="metric-status-badge badge-ok" id="hbadge-turb">--</span>
-        </div>
-        <div>
-          <div class="metric-value"><span id="hval-turb">--</span><span class="metric-unit">NTU</span></div>
-          <div class="metric-label">Turbidez · Último</div>
-        </div>
-        <div class="metric-trend" id="htrend-turb" style="color:var(--text3);">— cargando...</div>
-      </div>
-    </div>
- 
-    <!-- GRÁFICO -->
-    <div class="fade-in">
-      <div class="chart-card">
-        <div class="chart-header">
-          <div>
-            <div class="chart-title">Historial de Parámetros</div>
-            <div class="chart-sub">Datos reales de /getDatos · ESP32-A</div>
-          </div>
-          <div class="time-tabs">
-            <div class="time-tab active" onclick="filtrarGrafico('todos',this)">Todos</div>
-            <div class="time-tab" onclick="filtrarGrafico('temperatura',this)">Temp.</div>
-            <div class="time-tab" onclick="filtrarGrafico('ph',this)">pH</div>
-            <div class="time-tab" onclick="filtrarGrafico('oxigeno',this)">O₂</div>
-            <div class="time-tab" onclick="filtrarGrafico('turbidez',this)">Turbidez</div>
-          </div>
-        </div>
-        <div class="chart-canvas-wrap" style="height:220px;"><canvas id="chart-historico"></canvas></div>
-      </div>
-    </div>
- 
-    <!-- TABLA MEDICIONES -->
-    <div class="section-header fade-in">
-      <div class="section-title">Tabla de Mediciones · /getDatos</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <input type="text" id="filtro-sensor" placeholder="Filtrar sensor..." oninput="filtrarTabla()" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text1);padding:5px 10px;border-radius:6px;font-size:0.72rem;font-family:'Outfit',sans-serif;outline:none;width:160px;">
-        <span id="total-reg" style="font-size:0.68rem;color:var(--text3);font-family:'Space Mono',monospace;"></span>
-      </div>
-    </div>
- 
-    <div class="chart-card fade-in" style="padding:0;">
-      <div style="overflow-x:auto;">
-        <table class="readings-table">
-          <thead>
-            <tr><th>Sensor</th><th>Valor</th><th>Fecha / Hora</th><th>Estado</th></tr>
-          </thead>
-          <tbody id="hist-tbody">
-            <tr><td colspan="4" class="empty-state">Cargando datos de la API...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <div id="recomendaciones-container" class="fade-in"></div>
  
   </div>
 </div>
@@ -176,177 +86,101 @@
  
 <script src="./js/pwa.js"></script>
 <script src="./js/alertas-notif.js"></script>
+<script src="./js/recomendaciones.js"></script>
 <script>
-  // ============================================================
-  //  CONFIGURACIÓN DE API — UNIFICADA con index.html y alertas.html
-  // ============================================================
-  const API = (window.location.hostname === 'aquasense-t0pf.onrender.com')
-    ? 'https://aquasense-t0pf.onrender.com'
-    : `http://${window.location.hostname}:5000`;
+  const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? `http://${window.location.hostname}:5000`
+    : 'https://aquasense-t0pf.onrender.com';
  
-  let allData   = [];
-  let histChart = null;
+  let alertasData = [];
+  let ultimosValores = {};
  
-  const RANGOS = {
-    temperatura: { min: 20, max: 30, unit: '°C' },
-    ph:          { min: 6.5, max: 8.5, unit: 'pH' },
-    oxigeno:     { min: 5, max: 10, unit: 'mg/L' },
-    turbidez:    { min: 0, max: 5, unit: 'NTU' },
-  };
- 
-  // CLOCK
   function updateClock() {
     document.getElementById('clock').textContent =
       new Date().toLocaleTimeString('es-CO', { hour12: false });
   }
   setInterval(updateClock, 1000); updateClock();
  
-  function estado(sensor, val) {
-    const r = RANGOS[sensor.toLowerCase()];
-    if (!r) return { label: 'NORMAL', color: 'var(--green)', cls: 'badge-ok' };
-    if (val < r.min || val > r.max)
-      return { label: 'ALERTA', color: 'var(--red)', cls: 'badge-alert' };
-    return { label: 'NORMAL', color: 'var(--green)', cls: 'badge-ok' };
-  }
- 
-  async function cargarDatos() {
-    document.getElementById('refresh-icon').innerHTML = '<span class="spinner"></span>';
+  async function cargarUltimosValores() {
     try {
       const res = await axios.get(`${API}/getDatos`);
-      allData = res.data; // [[tipo_sensor, valor, fecha_hora], ...]
- 
-      // Alertas badge
-      const aRes = await axios.get(`${API}/getAlertas`);
-      const n = aRes.data.length;
-      document.getElementById('alert-count').textContent = n;
-      document.getElementById('notif-count').textContent = n;
- 
-      actualizarTarjetas();
-      renderTabla(allData);
-      renderGrafico(allData, 'todos');
- 
-      document.getElementById('conn-dot').className = 'mini-dot';
-      document.getElementById('conn-text').textContent = 'Conectado';
-      showToast('✅', 'Datos cargados correctamente');
-    } catch(e) {
-      console.error('Error:', e);
-      document.getElementById('conn-dot').className = 'mini-dot offline';
-      document.getElementById('conn-text').textContent = 'Sin conexión';
-      showToast('❌', `No se pudo conectar con ${API}`);
+      ultimosValores = {};
+      res.data.forEach(([tipo, valor]) => {
+        const t = tipo.toLowerCase();
+        if (ultimosValores[t] === undefined) ultimosValores[t] = parseFloat(valor);
+      });
+    } catch (e) {
+      console.error('No se pudieron cargar los últimos valores:', e);
     }
-    document.getElementById('refresh-icon').textContent = '↻';
   }
  
-  function actualizarTarjetas() {
-    const map = { temperatura: ['hval-temp','hbadge-temp','htrend-temp','hcard-temp'],
-                  ph:          ['hval-ph',  'hbadge-ph',  'htrend-ph',  'hcard-ph'],
-                  oxigeno:     ['hval-od',  'hbadge-od',  'htrend-od',  'hcard-od'],
-                  turbidez:    ['hval-turb','hbadge-turb','htrend-turb','hcard-turb'] };
+  function renderRecomendaciones() {
+    const cont = document.getElementById('recomendaciones-container');
  
-    Object.entries(map).forEach(([sensor, [valId, badgeId, trendId, cardId]]) => {
-      const filas = allData.filter(([t]) => t.toLowerCase() === sensor);
-      if (!filas.length) return;
-      const val = parseFloat(filas[0][1]);
-      const est = estado(sensor, val);
-      document.getElementById(valId).textContent   = val.toFixed(2);
-      const badge = document.getElementById(badgeId);
-      badge.textContent = est.label; badge.className = `metric-status-badge ${est.cls}`;
-      document.getElementById(trendId).textContent =
-        `Último: ${new Date(filas[0][2]).toLocaleString('es-CO')}`;
-      
-      // Cambiar color de la tarjeta según estado
-      const card = document.getElementById(cardId);
-      if (card) {
-        card.className = `metric-card ${est.label === 'ALERTA' ? 'status-warn' : 'status-ok'}`;
-      }
-    });
-  }
- 
-  function renderTabla(data) {
-    const tbody = document.getElementById('hist-tbody');
-    document.getElementById('total-reg').textContent = `${data.length} registros`;
-    if (!data.length) {
-      tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Sin datos</td></tr>'; return;
-    }
-    tbody.innerHTML = data.map(([sensor, valor, fecha]) => {
-      const val = parseFloat(valor);
-      const est = estado(sensor, val);
-      const r   = RANGOS[sensor.toLowerCase()] || { unit: '' };
-      return `
-        <tr>
-          <td style="color:var(--text1);font-weight:500;">${sensor}</td>
-          <td style="font-family:'Space Mono',monospace;">${val.toFixed(2)} <span style="color:var(--text3);font-size:0.7rem;">${r.unit}</span></td>
-          <td style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--text3);">${new Date(fecha).toLocaleString('es-CO')}</td>
-          <td><span style="color:${est.color};font-size:0.72rem;font-weight:700;">● ${est.label}</span></td>
-        </tr>
+    if (!alertasData.length) {
+      cont.innerHTML = `
+        <div class="chart-card" style="text-align:center;padding:40px 20px;">
+          <div style="font-size:2.5rem;margin-bottom:10px;">✅</div>
+          <div style="font-size:0.9rem;color:var(--text2);font-weight:600;">Sin alertas activas</div>
+          <div style="font-size:0.75rem;color:var(--text3);margin-top:6px;">No hay tratamientos pendientes en este momento.</div>
+        </div>
       `;
-    }).join('');
-  }
+      return;
+    }
  
-  function filtrarTabla() {
-    const q = document.getElementById('filtro-sensor').value.toLowerCase();
-    renderTabla(allData.filter(([s]) => s.toLowerCase().includes(q)));
-  }
+    const tiposVistos = new Set();
+    const tarjetas = [];
  
-  function renderGrafico(data, filtro) {
-    const map = {};
-    data.forEach(([sensor, valor, fecha]) => {
-      if (!map[fecha]) map[fecha] = { fecha };
-      map[fecha][sensor.toLowerCase()] = parseFloat(valor);
+    alertasData.forEach(a => {
+      const tipo = window.AquaSenseRecomendaciones.detectarTipoSensor(a.mensaje);
+      if (!tipo || tiposVistos.has(tipo)) return;
+      tiposVistos.add(tipo);
+ 
+      const valorActual = ultimosValores[tipo];
+      const rec = window.AquaSenseRecomendaciones.obtenerRecomendacion(a.mensaje, valorActual);
+      if (!rec) return;
+ 
+      const colorBorde = rec.calculable ? 'rgba(0,220,180,0.25)' : 'rgba(240,192,64,0.25)';
+      const colorTexto = rec.calculable ? 'var(--green)' : 'var(--yellow)';
+ 
+      tarjetas.push(`
+        <div class="chart-card" style="border-color:${colorBorde};margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+            <div style="flex:1;">
+              <div style="font-size:0.9rem;font-weight:700;color:${colorTexto};margin-bottom:6px;">${rec.titulo}</div>
+              <div style="font-size:0.8rem;color:var(--text2);line-height:1.6;">${rec.texto}</div>
+              ${rec.fuente ? `<div style="font-size:0.65rem;color:var(--text3);margin-top:10px;font-family:'Space Mono',monospace;">Fuente: ${rec.fuente}</div>` : ''}
+              ${rec.faltaConfig ? `<a href="umbrales.html" class="btn-sm" style="display:inline-block;margin-top:10px;text-decoration:none;">⚙️ Ir a Umbrales →</a>` : ''}
+            </div>
+          </div>
+        </div>
+      `);
     });
-    const puntos = Object.values(map).reverse().slice(-50);
-    const labels = puntos.map(p =>
-      new Date(p.fecha).toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit', hour12:false })
-    );
  
-    const datasets = [
-      { label:'Temperatura (°C)', data:puntos.map(p=>p.temperatura??null), borderColor:'#00d4ff', backgroundColor:'rgba(0,212,255,0.06)', borderWidth:2, pointRadius:2, tension:0.4, hidden: filtro!=='todos'&&filtro!=='temperatura', yAxisID:'y'  },
-      { label:'pH',               data:puntos.map(p=>p.ph??null),          borderColor:'#00e5a0', backgroundColor:'rgba(0,229,160,0.06)', borderWidth:2, pointRadius:2, tension:0.4, hidden: filtro!=='todos'&&filtro!=='ph',          yAxisID:'y1' },
-      { label:'O₂ (mg/L)',        data:puntos.map(p=>p.oxigeno??null),     borderColor:'#f5c842', backgroundColor:'rgba(245,200,66,0.06)',borderWidth:2, pointRadius:2, tension:0.4, hidden: filtro!=='todos'&&filtro!=='oxigeno',     yAxisID:'y2' },
-      { label:'Turbidez (NTU)',   data:puntos.map(p=>p.turbidez??null),    borderColor:'#ff4d6a', backgroundColor:'rgba(255,77,106,0.06)',borderWidth:2, pointRadius:2, tension:0.4, hidden: filtro!=='todos'&&filtro!=='turbidez',    yAxisID:'y2' },
-    ];
- 
-    if (histChart) histChart.destroy();
-    const ctx = document.getElementById('chart-historico').getContext('2d');
-    histChart = new Chart(ctx, {
-      type: 'line',
-      data: { labels, datasets },
-      options: {
-        responsive:true, maintainAspectRatio:false,
-        interaction:{ mode:'index', intersect:false },
-        plugins:{
-          legend:{ labels:{ color:'#7aa5c5', font:{family:'Space Mono',size:10}, boxWidth:10, padding:14 } },
-          tooltip:{ backgroundColor:'#0e1d2d', borderColor:'#1a3148', borderWidth:1, titleColor:'#d4e8f5', bodyColor:'#7aa5c5' },
-        },
-        scales:{
-          x:  { grid:{color:'rgba(26,49,72,0.5)'}, ticks:{color:'#3d6b8a',font:{family:'Space Mono',size:9},maxTicksLimit:8} },
-          y:  { position:'left',  title:{display:true,text:'°C',color:'#00d4ff',font:{size:9}}, grid:{color:'rgba(26,49,72,0.4)'}, ticks:{color:'#3d6b8a',font:{family:'Space Mono',size:9},maxTicksLimit:5} },
-          y1: { position:'right', title:{display:true,text:'pH',color:'#00e5a0',font:{size:9}}, grid:{drawOnChartArea:false}, ticks:{color:'#3d6b8a',font:{family:'Space Mono',size:9},maxTicksLimit:5}, min:0, max:14 },
-          y2: { display:false, min:0, max:15 },
-        },
-      },
-    });
+    cont.innerHTML = tarjetas.join('') + `
+      <div style="font-size:0.68rem;color:var(--text3);text-align:center;padding:16px;line-height:1.6;border-top:1px solid var(--border2);margin-top:10px;">
+        ⚠️ Estas son recomendaciones generales basadas en literatura técnica de acuicultura y no reemplazan la asesoría de un biólogo o especialista acuícola. Verifica siempre antes de aplicar cualquier tratamiento.
+      </div>
+    `;
   }
  
-  function filtrarGrafico(tipo, el) {
-    document.querySelectorAll('.time-tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    renderGrafico(allData, tipo);
-  }
+  async function cargarTodo() {
+    try {
+      const res = await axios.get(`${API}/getAlertas`);
+      alertasData = res.data.map(([mensaje, fecha], i) => ({ id: i+1, mensaje, fecha }));
  
-  function exportarCSV() {
-    if (!allData.length) { showToast('⚠️', 'Sin datos para exportar'); return; }
-    const rows = [['Sensor','Valor','Unidad','Fecha'], 
-      ...allData.map(([s,v,f]) => {
-        const r = RANGOS[s.toLowerCase()] || { unit: '' };
-        return [s, v, r.unit, f];
-      })];
-    const csv  = rows.map(r => r.join(',')).join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv' }));
-    a.download = `historico_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-    showToast('⬇️', 'CSV exportado');
+      await cargarUltimosValores();
+ 
+      document.getElementById('alert-count').textContent = alertasData.length;
+ 
+      renderRecomendaciones();
+      document.getElementById('conn-dot').className  = 'mini-dot';
+      document.getElementById('conn-text').textContent = 'Conectado';
+    } catch(e) {
+      document.getElementById('conn-dot').className  = 'mini-dot offline';
+      document.getElementById('conn-text').textContent = 'Sin conexión';
+      showToast('❌', 'No se pudo conectar con la API');
+    }
   }
  
   function showToast(icon, msg) {
@@ -358,8 +192,8 @@
   }
  
   window.addEventListener('DOMContentLoaded', () => {
-    cargarDatos();
-    setInterval(cargarDatos, 30000);
+    cargarTodo();
+    setInterval(cargarTodo, 30000);
   });
 </script>
 <script>
@@ -370,4 +204,3 @@
 </script>
 </body>
 </html>
- 
