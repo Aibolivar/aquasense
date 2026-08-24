@@ -735,6 +735,48 @@ body {
   :root { --sidebar-w: 0px; }
   .sidebar { transform: translateX(-100%); }
   .metrics-grid { grid-template-columns: 1fr 1fr; }
+
+  .content { padding: 16px; }
+
+  /* Topbar: apila título arriba y controles abajo, en vez de una sola fila apretada */
+  .topbar {
+    height: auto;
+    min-height: 64px;
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .topbar-title { font-size: 0.9rem; }
+  .topbar-sub   { font-size: 0.68rem; }
+  .topbar-right {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  /* En celular no necesitas ver el reloj ni el texto "Conectado" — solo el punto */
+  .clock { display: none; }
+  .conn-indicator span:not(.mini-dot) { display: none; }
+  .status-pill { font-size: 0.65rem; padding: 4px 9px; }
+
+  .chart-header { flex-wrap: wrap; gap: 8px; }
+  .time-tabs { flex-wrap: wrap; }
+
+  .sensors-grid       { grid-template-columns: 1fr; }
+  .thresholds-grid    { grid-template-columns: 1fr; }
+  .threshold-row      { grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .th-input           { font-size: 0.72rem; padding: 6px 4px; }
+
+  .readings-table, .s-table { font-size: 0.7rem; }
+  .readings-table th, .s-table th { padding: 6px 8px; }
+  .readings-table td, .s-table td { padding: 8px; }
+}
+
+@media (max-width: 480px) {
+  .metrics-grid { grid-template-columns: 1fr; }
+  .threshold-row { grid-template-columns: 1fr; }
+  .login-card { padding: 32px 22px; }
+  .metric-value { font-size: 1.8rem; }
 }
 
 /* ===== LOGIN PAGE ===== */
