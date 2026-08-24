@@ -3,12 +3,12 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify, send_from_directory, session
 import mysql.connector
 from flask_cors import CORS
-
+ 
 load_dotenv()
-
+ 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "supersecret123")
-
+ 
 CORS(app, supports_credentials=True, origins=[
     "https://spontaneous-duckanoo-37b764.netlify.app",
     "http://localhost:5000",
@@ -16,10 +16,10 @@ CORS(app, supports_credentials=True, origins=[
     "http://127.0.0.1:5000",
     "http://127.0.0.1:8080"
 ])
-
+ 
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.join(os.path.dirname(BACKEND_DIR), 'frontend')
-
+ 
 def get_connection():
     return mysql.connector.connect(
         host=os.getenv("MYSQL_ADDON_HOST", "localhost"),
@@ -28,29 +28,29 @@ def get_connection():
         password=os.getenv("MYSQL_ADDON_PASSWORD", ""),
         database=os.getenv("MYSQL_ADDON_DB", "esp32")
     )
-
+ 
 medir = False
-
+ 
 @app.route('/')
 def index():
     return send_from_directory(FRONTEND_DIR, 'login.html')
-
+ 
 @app.route('/<path:filename>')
 def serve_frontend(filename):
     return send_from_directory(FRONTEND_DIR, filename)
-
+ 
 @app.route('/css/<path:filename>')
 def serve_css(filename):
     return send_from_directory(os.path.join(FRONTEND_DIR, 'css'), filename)
-
+ 
 @app.route('/js/<path:filename>')
 def serve_js(filename):
     return send_from_directory(os.path.join(FRONTEND_DIR, 'js'), filename)
-
+ 
 @app.route('/img/<path:filename>')
 def serve_img(filename):
     return send_from_directory(os.path.join(FRONTEND_DIR, 'img'), filename)
-
+ 
 @app.route('/login', methods=['POST'])
 def login():
     correo = request.json.get('correo', '')
@@ -67,7 +67,7 @@ def login():
     if user:
         return jsonify({"ok": True, "usuario": {"id": user[0], "nombre": user[1], "correo": user[2], "rol": user[3]}})
     return jsonify({"ok": False})
-
+ 
 @app.route('/registro', methods=['POST'])
 def registro():
     nombre = request.json.get('nombre', '')
@@ -88,13 +88,13 @@ def registro():
     conn.commit()
     cursor.close(); conn.close()
     return jsonify({"ok": True})
-
+ 
 @app.route('/iniciarMedicion', methods=['GET'])
 def iniciarMedicion():
     global medir
     medir = True
     return jsonify({"mensaje": "Medición iniciada"})
-
+ 
 @app.route('/estadoMedicion', methods=['GET'])
 def estadoMedicion():
     global medir
@@ -102,7 +102,7 @@ def estadoMedicion():
         medir = False
         return jsonify({"medir": True})
     return jsonify({"medir": False})
-
+ 
 @app.route('/sendDato', methods=['POST'])
 def sendDato():
     sensor = request.json['sensor']
@@ -125,7 +125,7 @@ def sendDato():
         conn.commit()
     cursor.close(); conn.close()
     return jsonify({"mensaje": "dato guardado"})
-
+ 
 @app.route('/getDatos', methods=['GET'])
 def getDatos():
     conn = get_connection()
@@ -138,7 +138,7 @@ def getDatos():
     data = cursor.fetchall()
     cursor.close(); conn.close()
     return jsonify(data)
-
+ 
 @app.route('/getAlertas', methods=['GET'])
 def getAlertas():
     conn = get_connection()
@@ -147,17 +147,29 @@ def getAlertas():
     data = cursor.fetchall()
     cursor.close(); conn.close()
     return jsonify(data)
-
+ 
 @app.route('/generarReporte', methods=['POST'])
 def generarReporte():
-    usuario = 'Usuario'
+    id_usuario = None
+    usuario_texto = 'Usuario'
     if request.is_json:
-        usuario = request.json.get('usuario', 'Usuario')
+        id_usuario = request.json.get('id_usuario')
+        usuario_texto = request.json.get('usuario', 'Usuario')
+ 
     conn = get_connection()
     cursor = conn.cursor()
+ 
+    # Si viene id_usuario, buscamos su nombre real en la BD y lo usamos
+    # como generado_por (más confiable que confiar en lo que mande el frontend)
+    if id_usuario:
+        cursor.execute("SELECT nombre_completo FROM usuario WHERE id_usuario=%s", (id_usuario,))
+        row = cursor.fetchone()
+        if row:
+            usuario_texto = row[0]
+ 
     cursor.execute(
-        "INSERT INTO informes (fecha_generada, tipo_reporte, generado_por) VALUES (NOW(), 'calidad del agua', %s)",
-        (usuario,)
+        "INSERT INTO informes (fecha_generada, tipo_reporte, generado_por, id_usuario) VALUES (NOW(), 'calidad del agua', %s, %s)",
+        (usuario_texto, id_usuario)
     )
     conn.commit()
     cursor.close(); conn.close()
@@ -176,11 +188,6 @@ def getReportes():
     cursor.close(); conn.close()
     return jsonify(data)
  
-
-    data = cursor.fetchall()
-    cursor.close(); conn.close()
-    return jsonify(data)
-
 @app.route('/getSensores', methods=['GET'])
 def getSensores():
     conn = get_connection()
@@ -189,6 +196,6 @@ def getSensores():
     data = cursor.fetchall()
     cursor.close(); conn.close()
     return jsonify(data)
-
+ 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)  
+    app.run(debug=True, host='0.0.0.0', port=5000)
