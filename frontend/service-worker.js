@@ -1,23 +1,26 @@
 // ============================================================
 //  AQUASENSE SERVICE WORKER
 //  Estrategia:
-//   - Páginas/CSS/JS/fuentes/CDN -> cache-first (funciona offline)
+//   - Navegación (páginas HTML) -> network-first, cae a cache
+//     si no hay internet. Así nunca queda pegada una versión
+//     vieja en caché cuando se corrige un bug y se despliega.
+//   - CSS/JS/fuentes/CDN (no cambian tan seguido) -> cache-first
 //   - API (getDatos, getAlertas)  -> network-first, cae a cache
 //     con la última respuesta buena si no hay internet
 //   - Peticiones que NO son GET (sendDato, login, etc.) -> nunca
 //     se interceptan, van directo a la red como siempre
 // ============================================================
  
-const CACHE_VERSION = 'aquasense-v3';
+const CACHE_VERSION = 'aquasense-v5';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const API_CACHE     = `${CACHE_VERSION}-api`;
  
-// Ajusta esta lista si agregas o renombras páginas
 const STATIC_ASSETS = [
   './',
   './index.html',
   './Histórico.html',
   './alertas.html',
+  './recomendaciones.html',
   './sensores.html',
   './umbrales.html',
   './reportes.html',
@@ -27,6 +30,7 @@ const STATIC_ASSETS = [
   './js/app.js',
   './js/pwa.js',
   './js/alertas-notif.js',
+  './js/recomendaciones.js',
   './img/log.png',
   './manifest.json',
   'https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700;900&display=swap',
@@ -34,17 +38,14 @@ const STATIC_ASSETS = [
   'https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js',
 ];
  
-// Hosts que cuentan como "la API" — incluye producción y pruebas locales
 const API_HOSTS = [
   'aquasense-t0pf.onrender.com',
   'localhost',
   '127.0.0.1',
 ];
  
-// Rutas de la API que devuelven datos (network-first + cache de respaldo)
 const API_GET_PATHS = ['/getDatos', '/getAlertas', '/getReportes', '/getSensores', '/estadoMedicion'];
  
-// ── INSTALL: precachea el "app shell" ──
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE)
@@ -54,7 +55,6 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
  
-// ── ACTIVATE: limpia caches viejos de versiones anteriores ──
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -68,16 +68,21 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
  
-// ── FETCH: enruta según método y tipo de recurso ──
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
  
-  // Nunca interceptar peticiones que no son GET (POST, PUT, DELETE...).
-  // sendDato, login, registro, generarReporte, iniciarMedicion, etc.
-  // van directo a la red, tal cual, sin pasar por cache.
+  // Nunca interceptar peticiones que no son GET.
   if (request.method !== 'GET') {
-    return; // deja que el navegador la maneje normalmente
+    return;
+  }
+ 
+  // Navegación (cargar una página HTML): SIEMPRE intenta la red
+  // primero. Esto evita que quede pegada una versión vieja rota
+  // en caché después de corregir un bug y desplegar de nuevo.
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirstNavigation(request));
+    return;
   }
  
   const esHostAPI = API_HOSTS.some((h) => url.hostname === h);
@@ -88,8 +93,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
  
+  // CSS/JS/fuentes/íconos: cambian poco, cache-first está bien aquí.
   event.respondWith(cacheFirstStatic(request));
 });
+ 
+// Páginas HTML: red primero (siempre la versión más nueva), cae a
+// la copia cacheada solo si no hay conexión (modo offline real).
+async function networkFirstNavigation(request) {
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      const cache = await caches.open(STATIC_CACHE);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (err) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    return caches.match('./index.html');
+  }
+}
  
 // Datos de sensores/alertas: intenta red primero, si falla usa la última copia cacheada
 async function networkFirstAPI(request) {
@@ -103,12 +126,11 @@ async function networkFirstAPI(request) {
   } catch (err) {
     const cached = await cache.match(request);
     if (cached) return cached;
-    // Sin cache y sin red: responde array vacío en vez de romper la app
     return new Response('[]', { headers: { 'Content-Type': 'application/json' } });
   }
 }
  
-// App shell (HTML/CSS/JS/fuentes): cache primero, red de respaldo
+// CSS/JS/fuentes/imágenes: cache primero, red de respaldo
 async function cacheFirstStatic(request) {
   const cached = await caches.match(request);
   if (cached) return cached;
@@ -121,9 +143,7 @@ async function cacheFirstStatic(request) {
     }
     return response;
   } catch (err) {
-    if (request.mode === 'navigate') {
-      return caches.match('./index.html');
-    }
     throw err;
   }
 }
+
