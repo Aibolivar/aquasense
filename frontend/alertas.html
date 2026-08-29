@@ -223,8 +223,8 @@
     tbody.innerHTML = alertasData.map(a => `
       <tr>
         <td style="font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--text3);">#${String(a.id).padStart(3,'0')}</td>
-        <td style="color:var(--text1);font-weight:500;">⚠ ${a.mensaje}</td>
-        <td><span style="background:rgba(255,77,106,0.12);color:var(--red);border:1px solid rgba(255,77,106,0.25);font-size:0.6rem;font-weight:700;border-radius:20px;padding:3px 10px;font-family:'Space Mono',monospace;">● ACTIVA</span></td>
+        <td style="color:var(--text1);font-weight:500;">⚠ ${a.mensaje}</td><td><span style="background:rgba(255,77,106,0.12);color:var(--red);border:1px solid rgba(255,77,106,0.25);font-size:0.6rem;font-weight:700;border-radius:20px;padding:3px 10px;font-family:'Space Mono',monospace;white-space:nowrap;display:inline-block;">● ACTIVA</span></td>
+        
         <td style="font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--text3);">${new Date(a.fecha).toLocaleString('es-CO')}</td>
       </tr>`
     ).join('');
