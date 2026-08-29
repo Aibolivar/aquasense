@@ -24,6 +24,27 @@ function cambiarIP() {
 }
  
 // ============================================================
+//  MENÚ MÓVIL (sidebar hamburguesa)
+// ============================================================
+function toggleSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (overlay) overlay.classList.toggle('show');
+}
+ 
+function closeSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (overlay) overlay.classList.remove('show');
+}
+ 
+// Cierra el menú automáticamente al tocar cualquier opción de navegación,
+// para que no se quede abierto tapando la pantalla después de navegar.
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', closeSidebar));
+});
+ 
+// ============================================================
 //  RANGOS ÓPTIMOS
 //  sensor 1=pH  2=temperatura  3=turbidez  4=oxigeno
 // ============================================================
@@ -145,7 +166,8 @@ function updateCard(id, param, value, range) {
   if (badge) { badge.className = `metric-status-badge ${statusBadgeClass(status)}`; badge.textContent = statusLabel(status); }
  
   const valEl = document.getElementById(`val-${id}`);
-  if (valEl) valEl.textContent = value;
+  // Redondea a 1 decimal para no mostrar el valor crudo del sensor (ej. 30.1875 -> 30.2)
+  if (valEl) valEl.textContent = Number(value).toFixed(1);
  
   const bar = document.getElementById(`bar-${id}`);
   if (bar) {

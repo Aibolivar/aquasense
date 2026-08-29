@@ -6,7 +6,7 @@
   <title>AquaSense — Reportes</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="./css/style.css">
   <link rel="icon" type="image/png" href="./img/log.png">
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#00c8ff">
@@ -46,8 +46,11 @@
   </div>
 </div>
  
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+ 
 <div class="main">
   <div class="topbar">
+    <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Abrir menú">☰</button>
     <div>
       <div class="topbar-title">Reportes de Calidad del Agua</div>
       <div class="topbar-sub">Granja Integral La Aleta del Tiburón · Barranquilla</div>
@@ -139,6 +142,24 @@
 <script src="./js/pwa.js"></script>
 <script src="./js/alertas-notif.js"></script>
 <script>
+  // ============================================================
+  //  MENÚ MÓVIL (sidebar hamburguesa) — esta página no carga app.js,
+  //  así que estas funciones se agregan aquí también.
+  // ============================================================
+  function toggleSidebar() {
+    document.querySelector('.sidebar').classList.toggle('open');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (overlay) overlay.classList.toggle('show');
+  }
+  function closeSidebar() {
+    document.querySelector('.sidebar').classList.remove('open');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (overlay) overlay.classList.remove('show');
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', closeSidebar));
+  });
+ 
   // ============================================================
   //  CONFIGURACIÓN DE API — UNIFICADA con el resto del sitios
   // ============================================================
